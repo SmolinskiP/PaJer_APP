@@ -28,6 +28,9 @@
     <Compile Include="login_form.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="db_data_functions.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="validate_login.py">
       <SubType>Code</SubType>
     </Compile>
