@@ -39,5 +39,5 @@ employees_department_2.grid(row=0, column=1)
 select_department = OptionMenu(main_window, department, *departments, command=lambda department:get_employees_by_department(department))
 select_department.grid(column=0, row=1)
 
-main_window.withdraw()
+#main_window.withdraw()
 main_window.mainloop()
