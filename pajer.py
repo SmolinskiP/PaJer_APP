@@ -1,58 +1,9 @@
 
-from login_form import *
-from tkinter import *
-import tkinter as tk
-from tkinter import *
-import mysql.connector as database
-from db_connect import *
+from login_form.login_form import *
+from sql.db_data_functions import *
+from windows.pwd import *
 
 login_form()
-
-
-
-try:
-    conn = database.connect(user = dbLogin, password = dbPassword, host = dbHost, database = dbDatabase)
-except database.Error as e:
-    print(f"Nie udalo sie polaczyc z baza danych MariaDB: {e}")
-
-def Get_SQL_Data(table, data1):
-    sql_query = "SELECT " + data1 + " FROM " + table
-    get_sql = conn.cursor()
-    get_sql.execute(sql_query)
-    prepare_table = get_sql.fetchall()
-    table = []
-    for item in prepare_table:
-        table.append(item[0])
-    return table
-
-def Get_SQL_Data_ForUpdate(table, col_name, data):
-    if table == "firma":
-        table = "_firma"
-    elif table == "stanowisko":
-        table = "_stanowisko"
-    elif table == "dzial":
-        table = "_dzial"
-    elif table == "lokalizacja":
-        table = "_lokalizacja"
-        col_name = "miasto"
-    elif table == "umowa":
-        table = "_umowa"
-        col_name = "rodzaj"
-
-    sql_query = "SELECT id FROM " + table + " WHERE " + col_name + " = '" + data + "'"
-    get_sql = conn.cursor()
-    get_sql.execute(sql_query)
-    sql_id = get_sql.fetchall()[0][0]
-    return sql_id
-
-def Update_SQL_Data(table, col_name, value, where1, where2):
-    sql_id = Get_SQL_Data_ForUpdate(col_name, col_name, value)
-
-    sql_query = "UPDATE " + table + " SET " + col_name + " = " + str(sql_id) + " WHERE " + where1 + " = " + where2
-    print(sql_query)
-    update_sql = conn.cursor()
-    update_sql.execute(sql_query)
-    conn.commit()
 
 umowy = Get_SQL_Data("_umowa", "rodzaj")
 departments = Get_SQL_Data("_dzial", "dzial")
@@ -77,49 +28,18 @@ employeescanvas.grid(row=1, column=1)
 
 employeesframe = Canvas(employeescanvas, bg='#4A7A8C', width=150, height=150, scrollregion=(0,0,2000,2000))
 employeesframe.configure(scrollregion=employeesframe.bbox("all"))
-vertibar=Scrollbar(
-    employeescanvas,
-    orient=VERTICAL
-    )
+vertibar=Scrollbar(employeescanvas, orient=VERTICAL)
 vertibar.pack(side=RIGHT,fill=Y)
 vertibar.config(command=employeesframe.yview)
 employeesframe.config(width=1300,height=600)
-employeesframe.config(
-    yscrollcommand=vertibar.set
-    )
+employeesframe.config(yscrollcommand=vertibar.set)
 employeesframe.pack(expand=True,side=LEFT)
 
 department = StringVar(main_window)
 department.set("Dzial")
 localization = StringVar(main_window)
 localization.set("Miasto")
-
-
-def destroy_frame_content(frame):
-    for content in employeesframe.winfo_children():
-        content.destroy()
-
-def get_employees_by_department(department):
-        
-    destroy_frame_content(employeesframe)
-
-    get_employees = conn.cursor()
-    get_employees.execute("SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, _firma.firma, _stanowisko.stanowisko, _dzial.dzial, _lokalizacja.miasto, _umowa.rodzaj, pracownicy.karta FROM pracownicy LEFT JOIN _dzial ON pracownicy.dzial = _dzial.id LEFT JOIN _firma ON pracownicy.firma = _firma.id LEFT JOIN _umowa ON pracownicy.umowa = _umowa.id LEFT JOIN _stanowisko ON pracownicy.stanowisko = _stanowisko.id LEFT JOIN _lokalizacja ON pracownicy.lokalizacja = _lokalizacja.id WHERE _dzial.dzial = '%s' AND karta IS NOT NULL ORDER BY nazwisko" % department)
-    employees = get_employees.fetchall()
-    return employees
-
-def get_employees_by_localization(localization):
-        
-    destroy_frame_content(employeesframe)
-
-    get_employees = conn.cursor()
-    get_employees.execute("SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, _firma.firma, _stanowisko.stanowisko, _dzial.dzial, _lokalizacja.miasto, _umowa.rodzaj, pracownicy.karta FROM pracownicy LEFT JOIN _dzial ON pracownicy.dzial = _dzial.id LEFT JOIN _firma ON pracownicy.firma = _firma.id LEFT JOIN _umowa ON pracownicy.umowa = _umowa.id LEFT JOIN _stanowisko ON pracownicy.stanowisko = _stanowisko.id LEFT JOIN _lokalizacja ON pracownicy.lokalizacja = _lokalizacja.id WHERE _lokalizacja.miasto = '%s' AND karta IS NOT NULL ORDER BY nazwisko" % localization)
-    employees = get_employees.fetchall()
-    print(localization)
-    print(employees)
-    return employees
-
-
+dict_firma = {}
 
 def Create_Top_table():
     key = "topframe"
@@ -137,7 +57,6 @@ def Create_Top_table():
         x = x + 1
         width_count += 1
 
-dict_firma = {}
 def Create_Table(employees):
     i = 1
     place_x = 650
@@ -218,12 +137,12 @@ def Create_Table(employees):
     employeesframe.update()
         
 def Print_Employees_By_Department(department):
-    employees = get_employees_by_department(department)
+    employees = get_employees_by_department(department, employeesframe)
     Create_Top_table()
     Create_Table(employees)
 
 def Print_Employees_By_Localization(localization):
-    employees = get_employees_by_localization(localization)
+    employees = get_employees_by_localization(localization, employeesframe)
     Create_Top_table()
     Create_Table(employees)
 
@@ -233,51 +152,6 @@ def Add_Employee_Window():
     newWindow.geometry("300x250")
     Label(newWindow, text ="#TODO").pack()
 
-def change_password_sql():
-    actual_pwd = actual_password.get()
-    pwd = password.get()
-    pwd2 = password2.get()
-    print(actual_pwd)
-    print(pwd)
-    print(pwd2)
-
-    if pwd != pwd2:
-        message.set("Hasla roznia sie od siebie. Sproboj jeszcze raz")
-    elif actual_pwd == "" or pwd == "" or pwd2 == "":
-        message.set("Uzupelnij prosze wszystkie pola")
-    else:
-        if validate_login(actual_pwd, pwd) == True:
-            #DOSOMETHING
-            message.set("Gitara!!!")
-            newWindow.destroy()
-        else:
-            message.set("Wrong password!!!")
-
-
-def Change_Password():
-    global newWindow
-    newWindow = Toplevel()
-    newWindow.title("Zmiana hasla")
-    newWindow.geometry("300x250")
-    
-    global message
-    global actual_password
-    global password
-    global password2
-    message = StringVar()
-    actual_password = StringVar()
-    password = StringVar()
-    password2 = StringVar()
-
-    Label(newWindow, width="300", text="Wprowadz dane ponizej", bg="orange",fg="white").pack()
-    Label(newWindow, text="Aktualne haslo * ").place(x=5,y=40)
-    Entry(newWindow, textvariable=actual_password).place(x=90,y=42)
-    Label(newWindow, text="Nowe haslo * ").place(x=5,y=80)
-    Entry(newWindow, textvariable=password ,show="*").place(x=90,y=82)
-    Label(newWindow, text="Powtorz\nNowe haslo * ").place(x=5,y=120)
-    Entry(newWindow, textvariable=password2 ,show="*").place(x=90,y=129)
-    Label(newWindow, text="",textvariable=message).place(x=60,y=200)
-    Button(newWindow, text="Zmien haslo", width=10, height=1, bg="orange", command=change_password_sql).place(x=105,y=160)
 
 select_department = OptionMenu(topframe, department, *departments, command=lambda department:Print_Employees_By_Department(department))
 select_department.config(height=2, width=10)

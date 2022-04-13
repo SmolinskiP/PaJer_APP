@@ -4,7 +4,7 @@
     <SchemaVersion>2.0</SchemaVersion>
     <ProjectGuid>63fa1db1-3484-47aa-85cf-9fd11f4ee394</ProjectGuid>
     <ProjectHome>.</ProjectHome>
-    <StartupFile>login.py</StartupFile>
+    <StartupFile>pajer.py</StartupFile>
     <SearchPath>
     </SearchPath>
     <WorkingDirectory>.</WorkingDirectory>
@@ -21,19 +21,30 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="login.py" />
-    <Compile Include="db_connect.py">
+    <Compile Include="pajer.py" />
+    <Compile Include="sql\db_connect.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="login_form.py">
+    <Compile Include="login_form\login_form.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="db_data_functions.py">
+    <Compile Include="sql\db_data_functions.py">
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="validate_login.py">
+    <Compile Include="login_form\validate_login.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="windows\wind_mgmt.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="windows\pwd.py">
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="login_form\" />
+    <Folder Include="windows\" />
+    <Folder Include="sql\" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets" />
   <!-- Uncomment the CoreCompile target to enable the Build command in

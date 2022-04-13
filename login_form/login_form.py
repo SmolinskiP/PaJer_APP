@@ -1,6 +1,5 @@
-
 from tkinter import *
-from validate_login import validate_login
+from windows.pwd import validate_login
 import sys
 
 def login():
