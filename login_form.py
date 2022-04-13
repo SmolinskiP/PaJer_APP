@@ -28,7 +28,7 @@ def login_form():
     global password
     username = StringVar()
     password = StringVar()
-    message=StringVar()
+    message = StringVar()
 
     Label(login_screen,width="300", text="Please enter details below", bg="orange",fg="white").pack()
     Label(login_screen, text="Username * ").place(x=20,y=40)

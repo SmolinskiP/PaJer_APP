@@ -1,4 +1,4 @@
 dbLogin = "rcp"
-dbPassword = "qwerty"
+dbPassword = "PDArcpSERWIS"
 dbHost = "localhost"
-dbDatabase = "rcp_test"
+dbDatabase = "rfid"
