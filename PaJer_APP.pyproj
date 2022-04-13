@@ -21,6 +21,9 @@
     <EnableUnmanagedDebugging>false</EnableUnmanagedDebugging>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="bookmarks\occurence.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="pajer.py" />
     <Compile Include="sql\db_connect.py">
       <SubType>Code</SubType>
@@ -43,6 +46,7 @@
   </ItemGroup>
   <ItemGroup>
     <Folder Include="login_form\" />
+    <Folder Include="bookmarks\" />
     <Folder Include="windows\" />
     <Folder Include="sql\" />
   </ItemGroup>

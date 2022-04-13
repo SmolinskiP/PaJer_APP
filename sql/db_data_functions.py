@@ -1,7 +1,7 @@
 
 import mysql.connector as database
 from sql.db_connect import *
-from windows.wind_mgmt import destroy_frame_content
+
 
 def SQL_Connect(dbLogin, dbPassword, dbHost, dbDatabase):
     try:
@@ -13,6 +13,16 @@ conn = SQL_Connect(dbLogin, dbPassword, dbHost, dbDatabase)
 
 def Get_SQL_Data(table, data1):
     sql_query = "SELECT " + data1 + " FROM " + table
+    get_sql = conn.cursor()
+    get_sql.execute(sql_query)
+    prepare_table = get_sql.fetchall()
+    table = []
+    for item in prepare_table:
+        table.append(item[0])
+    return table
+
+def Get_SQL_Data_2(table, data1, data2):
+    sql_query = "SELECT " + data1 + ", " + data2 + " FROM " + table
     get_sql = conn.cursor()
     get_sql.execute(sql_query)
     prepare_table = get_sql.fetchall()
@@ -50,8 +60,9 @@ def Update_SQL_Data(table, col_name, value, where1, where2):
     update_sql.execute(sql_query)
     conn.commit()
 
+
 def get_employees_by_department(department, frame):
-        
+    from windows.wind_mgmt import destroy_frame_content
     destroy_frame_content(frame)
 
     get_employees = conn.cursor()
@@ -60,10 +71,28 @@ def get_employees_by_department(department, frame):
     return employees
 
 def get_employees_by_localization(localization, frame):
-        
+    from windows.wind_mgmt import destroy_frame_content
     destroy_frame_content(frame)
 
     get_employees = conn.cursor()
     get_employees.execute("SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, _firma.firma, _stanowisko.stanowisko, _dzial.dzial, _lokalizacja.miasto, _umowa.rodzaj, pracownicy.karta FROM pracownicy LEFT JOIN _dzial ON pracownicy.dzial = _dzial.id LEFT JOIN _firma ON pracownicy.firma = _firma.id LEFT JOIN _umowa ON pracownicy.umowa = _umowa.id LEFT JOIN _stanowisko ON pracownicy.stanowisko = _stanowisko.id LEFT JOIN _lokalizacja ON pracownicy.lokalizacja = _lokalizacja.id WHERE _lokalizacja.miasto = '%s' AND karta IS NOT NULL ORDER BY nazwisko" % localization)
     employees = get_employees.fetchall()
     return employees
+
+def get_occurence_by_employee(employee_id, frame):
+    from windows.wind_mgmt import destroy_frame_content
+    destroy_frame_content(frame)
+
+    get_occurance = conn.cursor()
+    get_occurance.execute("SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, obecnosc.time, _action.action, obecnosc.komentarz, obecnosc.id FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik LEFT JOIN _action ON obecnosc.action = _action.id WHERE obecnosc.pracownik = '%s' ORDER BY nazwisko" % str(employee_id))
+    occurance = get_occurance.fetchall()
+    return occurance
+
+def get_occurence_by_entry_time(entry_time, frame):
+    from windows.wind_mgmt import destroy_frame_content
+    destroy_frame_content(frame)
+
+    get_occurance = conn.cursor()
+    get_occurance.execute("SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, obecnosc.time, _action.action, obecnosc.komentarz, obecnosc.id FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik LEFT JOIN _action ON obecnosc.action = _action.id WHERE obecnosc.time LIKE '" + str(entry_time) + "%' ORDER BY nazwisko")
+    occurance = get_occurance.fetchall()
+    return occurance

@@ -1,11 +1,12 @@
 from tkinter import *
 import hashlib
 from sql.db_connect import *
-from sql.db_data_functions import SQL_Connect
+
 
 def validate_login(uname, input_password):
     db_password = ""
     try:
+        from sql.db_data_functions import SQL_Connect
         conn = SQL_Connect(dbLogin, dbPassword, dbHost, dbDatabase)
     except database.Error as e:
         print(f"Nie udalo sie polaczyc z baza danych MariaDB: {e}")

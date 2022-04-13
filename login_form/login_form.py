@@ -1,6 +1,4 @@
 from tkinter import *
-from windows.pwd import validate_login
-import sys
 
 def login():
     uname=username.get()
@@ -9,6 +7,7 @@ def login():
     if uname=='' or pwd=='':
         message.set("Wpisz prosze login i haslo")
     else:
+        from windows.pwd import validate_login
         if validate_login(uname, pwd) == True:
             main_window.deiconify()
             login_screen.destroy()

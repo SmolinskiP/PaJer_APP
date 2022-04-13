@@ -1,7 +1,8 @@
-
 from login_form.login_form import *
 from sql.db_data_functions import *
 from windows.pwd import *
+from datetime import date
+from tkcalendar import DateEntry
 
 login_form()
 
@@ -49,6 +50,22 @@ def Create_Top_table():
     x = 0
     entries = ["LP", "ID", "NAZWISKO", "IMIE", "FIRMA", "STANOWISKO", "DZIAL", "MIASTO", "UMOWA", "ID KARTY"]
     entries_width = [5, 5, 15, 15, 25, 47, 21, 22, 26, 16]
+    width_count = 0
+    for e in entries:
+        e = Entry(dict_firma[key], width=entries_width[width_count], justify='center', fg='black')
+        e.grid(row=0, column=x) 
+        e.insert(END, entries[x])
+        x = x + 1
+        width_count += 1
+
+def Create_Top_table_occurance():
+    key = "topframe"
+    dict_firma[key] = Frame(employeesframe)
+    canvas_toplabel = employeesframe.create_window(650, 20, window=dict_firma[key])
+    #dict_firma[key].grid(row=0, column=0)
+    x = 0
+    entries = ["LP", "ID", "NAZWISKO", "IMIE", "CZAS", "AKCJA", "KOMENTARZ", "ID_WPIS"]
+    entries_width = [5, 5, 15, 15, 25, 40, 90, 10]
     width_count = 0
     for e in entries:
         e = Entry(dict_firma[key], width=entries_width[width_count], justify='center', fg='black')
@@ -136,6 +153,87 @@ def Create_Table(employees):
         place_y += 25
     employeesframe.update()
         
+def Create_Table_Occurance(occurance):
+    i = 1
+    place_x = 650
+    place_y = 40
+    for event in occurance:
+        key = str("frame" + str(i))
+        dict_firma[key] = Frame(employeesframe)
+        dict_firma["canvas" + str(i)] = employeesframe.create_window(place_x, place_y, window=dict_firma[key])
+        #dict_firma[key].grid(row=i, column=0)
+        entry_width = 5
+        e = Entry(dict_firma["frame" + str(i)], width=entry_width, fg='black') 
+        e.grid(row=0, column=0) 
+        e.insert(END, str(i))
+        for j in range(len(event)):
+            if j == 0:
+                entry_width = 5
+                key = "employee_ocu_id" + str(i)
+                dict_firma[key] = StringVar(employeesframe)
+                dict_firma[key].set(event[j])
+                k = j
+                e = Entry(dict_firma["frame" + str(i)], width=entry_width, fg='blue') 
+                e.grid(row=0, column=j+1)
+                e.insert(END, dict_firma[key].get())
+            elif j == 1:
+                entry_width = 15
+                key = "employee_ocu_sname" + str(i)
+                dict_firma[key] = StringVar(employeesframe)
+                dict_firma[key].set(event[j])
+                k = j
+                e = Entry(dict_firma["frame" + str(i)], width=entry_width, fg='blue') 
+                e.grid(row=0, column=j+1)
+                e.insert(END, dict_firma[key].get())
+            elif j == 2:
+                entry_width = 15
+                key = "employee_ocu_name" + str(i)
+                dict_firma[key] = StringVar(employeesframe)
+                dict_firma[key].set(event[j])
+                k = j
+                e = Entry(dict_firma["frame" + str(i)], width=entry_width, fg='blue') 
+                e.grid(row=0, column=j+1)
+                e.insert(END, dict_firma[key].get())
+            elif j == 3:
+                entry_width = 25
+                key = "employee_time" + str(i)
+                dict_firma[key] = StringVar(employeesframe)
+                dict_firma[key].set(event[j])
+                k = j
+                e = Entry(dict_firma["frame" + str(i)], width=entry_width, fg='blue') 
+                e.grid(row=0, column=j+1)
+                e.insert(END, dict_firma[key].get())
+            elif j == 4:
+                entry_width = 40
+                key = "employee_action" + str(i)
+                dict_firma[key] = StringVar(employeesframe)
+                dict_firma[key].set(event[j])
+                k = j
+                e = Entry(dict_firma["frame" + str(i)], width=entry_width, fg='blue') 
+                e.grid(row=0, column=j+1)
+                e.insert(END, dict_firma[key].get())
+            elif j == 5:
+                entry_width = 90
+                key = "employee_comment" + str(i)
+                dict_firma[key] = StringVar(employeesframe)
+                dict_firma[key].set(event[j])
+                k = j
+                e = Entry(dict_firma["frame" + str(i)], width=entry_width, fg='blue') 
+                e.grid(row=0, column=j+1)
+                e.insert(END, dict_firma[key].get())
+            elif j == 6:
+                entry_width = 10
+                key = "employee_db_id" + str(i)
+                dict_firma[key] = StringVar(employeesframe)
+                dict_firma[key].set(event[j])
+                k = j
+                e = Entry(dict_firma["frame" + str(i)], width=entry_width, fg='blue') 
+                e.grid(row=0, column=j+1)
+                e.insert(END, dict_firma[key].get())
+        i = i + 1
+        place_y += 25
+    employeesframe.update()
+
 def Print_Employees_By_Department(department):
     employees = get_employees_by_department(department, employeesframe)
     Create_Top_table()
@@ -152,22 +250,61 @@ def Add_Employee_Window():
     newWindow.geometry("300x250")
     Label(newWindow, text ="#TODO").pack()
 
+def Destroy_Old():
+    select_1.destroy()
+    select_2.destroy()
+    obecnosc_btn.destroy()
+    btn_1.destroy()
+    btn_2.destroy()
 
-select_department = OptionMenu(topframe, department, *departments, command=lambda department:Print_Employees_By_Department(department))
-select_department.config(height=2, width=10)
-select_department.grid(column=1, row=0, sticky='nw')
-select_localization = OptionMenu(topframe, localization, *miasta, command=lambda localization:Print_Employees_By_Localization(localization))
-select_localization.config(height=2, width=10)
-select_localization.grid(column=2, row=0, sticky='nw')
+def Get_Date_From_Callendar():
+    dt = select_1.get_date()
+    str_dt=dt.strftime("%Y-%m-%d")
+    return str_dt
 
-obecnosc_btn = Button(leftsquare, text="LISTA OBECNOSCI", bg='green', width=20, height=2)
+def Print_Occurance(input_type, input_value):
+    if input_type == 1:
+        occurance = get_occurence_by_entry_time(input_value, employeesframe)
+    Create_Top_table_occurance()
+    Create_Table_Occurance(occurance)
+
+def Create_Occurance_Tab():
+    today = date.today()
+    d1 = today.strftime("%Y-%m-%d")
+    Destroy_Old()
+    occurance = get_occurence_by_entry_time(d1, employeesframe)
+    Create_Top_table_occurance()
+    Create_Table_Occurance(occurance)
+    global date_input
+    date_input=StringVar()
+    global select_1
+    select_1 = DateEntry(topframe,selectmode='day', width=22, textvariable=date_input)
+    select_1.grid(column=1, row=0, sticky='nw')
+
+    btn_2 = Button(topframe, text="Odswiez", width=20, command=lambda: Print_Occurance(1, Get_Date_From_Callendar()))
+    btn_2.grid(column=1, row=2, sticky='ew')
+
+
+
+    
+
+
+select_1 = OptionMenu(topframe, department, *departments, command=lambda department:Print_Employees_By_Department(department))
+select_1.config(height=2, width=10)
+select_1.grid(column=1, row=0, sticky='nw')
+
+select_2 = OptionMenu(topframe, localization, *miasta, command=lambda localization:Print_Employees_By_Localization(localization))
+select_2.config(height=2, width=10)
+select_2.grid(column=2, row=0, sticky='nw')
+
+obecnosc_btn = Button(leftsquare, text="LISTA OBECNOSCI", bg='green', width=20, height=2, command=Create_Occurance_Tab)
 obecnosc_btn.grid(column=3, row=0, sticky='ew')
 
-add_employee_btn = Button(leftframe, text="Dodaj\npracownika", command=lambda: Add_Employee_Window())
-add_employee_btn.grid(column=0, row=0, sticky='ew')
+btn_1 = Button(leftframe, text="Dodaj\npracownika", width=20, command=lambda: Add_Employee_Window())
+btn_1.grid(column=0, row=0, sticky='ew')
 
-add_employee_btn = Button(leftframe, text="Zmien\nhaslo", width=20, command=lambda: Change_Password())
-add_employee_btn.grid(column=0, row=1, sticky='ew')
+btn_2 = Button(leftframe, text="Zmien\nhaslo", width=20, command=lambda: Change_Password())
+btn_2.grid(column=0, row=1, sticky='ew')
 
 Print_Employees_By_Department("Biuro")
 
