@@ -11,6 +11,13 @@ def SQL_Connect(dbLogin, dbPassword, dbHost, dbDatabase):
     return conn
 conn = SQL_Connect(dbLogin, dbPassword, dbHost, dbDatabase)
 
+def Get_Single_SQL_Data(table, data, where):
+    sql_query = "SELECT " + data + " FROM " + table + " WHERE id = " + where
+    get_sql = conn.cursor()
+    get_sql.execute(sql_query)
+    output = get_sql.fetchall()[0][0]
+    return output
+
 def Get_SQL_Data(table, data1):
     sql_query = "SELECT " + data1 + " FROM " + table
     get_sql = conn.cursor()
@@ -60,6 +67,8 @@ def Update_SQL_Data(table, col_name, value, where1, where2):
     update_sql.execute(sql_query)
     conn.commit()
 
+def Remove_SQL_Data(table, where1, where2):
+    print("DELETE FROM " + table + " WHERE " + where1 + " = " + where2)
 
 def get_employees_by_department(department, frame):
     from windows.wind_mgmt import destroy_frame_content

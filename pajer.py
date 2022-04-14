@@ -3,6 +3,7 @@ from sql.db_data_functions import *
 from windows.pwd import *
 from datetime import date
 from tkcalendar import DateEntry
+from pathlib import Path
 
 login_form()
 
@@ -11,6 +12,9 @@ departments = Get_SQL_Data("_dzial", "dzial")
 stanowiska = Get_SQL_Data("_stanowisko", "stanowisko")
 firmy = Get_SQL_Data("_firma", "firma")
 miasta = Get_SQL_Data("_lokalizacja", "miasto")
+
+ico_path = str(Path().absolute()) + "\ico\delete_employee.png"
+remove_employee_ico = PhotoImage(file = ico_path)
 
 global employeesframe
 global employeescanvas
@@ -42,6 +46,19 @@ localization = StringVar(main_window)
 localization.set("Miasto")
 dict_firma = {}
 
+def Are_You_Sure_Button(value, frame, case):
+    are_you_sure = Toplevel()
+    are_you_sure.title("Potwierdz wybor")
+    are_you_sure.geometry("200x200")
+    if case == 1:
+        employee = Get_Single_SQL_Data("pracownicy", "imie", value) + " " + Get_Single_SQL_Data("pracownicy", "nazwisko", value)
+        Label(are_you_sure, text="Czy na pewno chcesz usunac:\n" + employee).place(x=20,y=30)
+    elif case == 2:
+        Label(are_you_sure, text="Czy na pewno chcesz usunac wpis?").place(x=2,y=30)
+
+    Button(are_you_sure, text="Tak", width=10, height=1, bg="orange",command=lambda frame=frame, value=value: [Remove_SQL_Data("pracownicy", "id", value), frame.destroy(), are_you_sure.destroy()]).place(x=65,y=90)
+    Button(are_you_sure, text="Nie", width=10, height=1, bg="orange",command=are_you_sure.destroy).place(x=65,y=130)
+
 def Create_Top_table():
     key = "topframe"
     dict_firma[key] = Frame(employeesframe)
@@ -49,7 +66,7 @@ def Create_Top_table():
     #dict_firma[key].grid(row=0, column=0)
     x = 0
     entries = ["LP", "ID", "NAZWISKO", "IMIE", "FIRMA", "STANOWISKO", "DZIAL", "MIASTO", "UMOWA", "ID KARTY"]
-    entries_width = [5, 5, 15, 15, 25, 47, 21, 22, 26, 16]
+    entries_width = [5, 5, 15, 15, 25, 47, 21, 22, 26, 20]
     width_count = 0
     for e in entries:
         e = Entry(dict_firma[key], width=entries_width[width_count], justify='center', fg='black')
@@ -65,7 +82,7 @@ def Create_Top_table_occurance():
     #dict_firma[key].grid(row=0, column=0)
     x = 0
     entries = ["LP", "ID", "NAZWISKO", "IMIE", "CZAS", "AKCJA", "KOMENTARZ", "ID_WPIS"]
-    entries_width = [5, 5, 15, 15, 25, 40, 90, 10]
+    entries_width = [5, 5, 15, 15, 25, 40, 90, 14]
     width_count = 0
     for e in entries:
         e = Entry(dict_firma[key], width=entries_width[width_count], justify='center', fg='black')
@@ -149,6 +166,11 @@ def Create_Table(employees):
                 e = Entry(dict_firma["frame" + str(i)], width=entry_width, fg='blue') 
                 e.grid(row=0, column=j+1)
                 e.insert(END, dict_firma[key].get())
+            key = str("dzial" + str(i))
+            dict_firma[key] = StringVar(employeesframe)
+            dict_firma[key].set(employee[j])
+            e = Button(dict_firma["frame" + str(i)], text = "Usun", image=remove_employee_ico, command=lambda frame = dict_firma[str("frame" + str(i))], employee_id = dict_firma["employee_id" + str(i)].get(): Are_You_Sure_Button(employee_id, frame, 1))
+            e.grid(row=0, column=10)
         i = i + 1
         place_y += 25
     employeesframe.update()
@@ -230,6 +252,11 @@ def Create_Table_Occurance(occurance):
                 e = Entry(dict_firma["frame" + str(i)], width=entry_width, fg='blue') 
                 e.grid(row=0, column=j+1)
                 e.insert(END, dict_firma[key].get())
+                key = str("rm_btn" + str(i))
+                dict_firma[key] = StringVar(employeesframe)
+                dict_firma[key].set(event[j])
+                e = Button(dict_firma["frame" + str(i)], text = "Usun", image=remove_employee_ico, command=lambda frame = dict_firma[str("frame" + str(i))], employee_id = dict_firma["employee_db_id" + str(i)].get(): Are_You_Sure_Button(employee_id, frame, 2))
+                e.grid(row=0, column=8)
         i = i + 1
         place_y += 25
     employeesframe.update()
@@ -250,12 +277,15 @@ def Add_Employee_Window():
     newWindow.geometry("300x250")
     Label(newWindow, text ="#TODO").pack()
 
+def clear(frame_name):
+    list = frame_name.grid_slaves()
+    for l in list:
+        l.destroy()
+
 def Destroy_Old():
-    select_1.destroy()
-    select_2.destroy()
-    obecnosc_btn.destroy()
-    btn_1.destroy()
-    btn_2.destroy()
+    clear(topframe)
+    clear(leftframe)
+    clear(leftsquare)
 
 def Get_Date_From_Callendar():
     dt = select_1.get_date()
@@ -267,6 +297,26 @@ def Print_Occurance(input_type, input_value):
         occurance = get_occurence_by_entry_time(input_value, employeesframe)
     Create_Top_table_occurance()
     Create_Table_Occurance(occurance)
+
+def Create_Employee_Tab():
+    Destroy_Old()
+    employeesframe.update()
+    select_1 = OptionMenu(topframe, department, *departments, command=lambda department:Print_Employees_By_Department(department))
+    select_1.config(height=2, width=10)
+    select_1.grid(column=1, row=0, sticky='nw')
+
+    select_2 = OptionMenu(topframe, localization, *miasta, command=lambda localization:Print_Employees_By_Localization(localization))
+    select_2.config(height=2, width=10)
+    select_2.grid(column=2, row=0, sticky='nw')
+
+    obecnosc_btn = Button(leftsquare, text="LISTA OBECNOSCI", bg='green', width=20, height=2, command=Create_Occurance_Tab)
+    obecnosc_btn.grid(column=3, row=0, sticky='ew')
+
+    btn_1 = Button(leftframe, text="Dodaj\npracownika", width=20, command=lambda: Add_Employee_Window())
+    btn_1.grid(column=0, row=0, sticky='ew')
+
+    btn_2 = Button(leftframe, text="Zmien\nhaslo", width=20, command=lambda: Change_Password())
+    btn_2.grid(column=0, row=1, sticky='ew')
 
 def Create_Occurance_Tab():
     today = date.today()
@@ -283,6 +333,9 @@ def Create_Occurance_Tab():
 
     btn_2 = Button(topframe, text="Odswiez", width=20, command=lambda: Print_Occurance(1, Get_Date_From_Callendar()))
     btn_2.grid(column=1, row=2, sticky='ew')
+
+    obecnosc_btn = Button(leftsquare, text="LISTA PRACOWNIKOW", bg='green', width=20, height=2, command=Create_Employee_Tab)
+    obecnosc_btn.grid(column=3, row=0, sticky='ew')
 
 
 
