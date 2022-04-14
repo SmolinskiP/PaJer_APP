@@ -3,13 +3,13 @@ import mysql.connector as database
 from sql.db_connect import *
 
 
-def SQL_Connect(dbLogin, dbPassword, dbHost, dbDatabase):
+def SQL_Connect(dbLogin, dbPassword, dbHost, dbDatabase, dbPort):
     try:
-        conn = database.connect(user = dbLogin, password = dbPassword, host = dbHost, database = dbDatabase)
+        conn = database.connect(user = dbLogin, password = dbPassword, host = dbHost, database = dbDatabase, port = dbPort)
     except database.Error as e:
         print(f"Nie udalo sie polaczyc z baza danych MariaDB: {e}")
     return conn
-conn = SQL_Connect(dbLogin, dbPassword, dbHost, dbDatabase)
+conn = SQL_Connect(dbLogin, dbPassword, dbHost, dbDatabase, dbPort)
 
 def Get_Single_SQL_Data(table, data, where):
     sql_query = "SELECT " + data + " FROM " + table + " WHERE id = " + where

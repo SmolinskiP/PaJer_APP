@@ -13,8 +13,9 @@ stanowiska = Get_SQL_Data("_stanowisko", "stanowisko")
 firmy = Get_SQL_Data("_firma", "firma")
 miasta = Get_SQL_Data("_lokalizacja", "miasto")
 
-ico_path = str(Path().absolute()) + "\ico\delete_employee.png"
-remove_employee_ico = PhotoImage(file = ico_path)
+ico_path = str(Path().absolute()) + "\ico\\"
+remove_employee_ico = PhotoImage(file = ico_path + "delete_employee.png")
+remove_entry_ico = PhotoImage(file = ico_path + "remove_entry.png")
 
 global employeesframe
 global employeescanvas
@@ -255,7 +256,7 @@ def Create_Table_Occurance(occurance):
                 key = str("rm_btn" + str(i))
                 dict_firma[key] = StringVar(employeesframe)
                 dict_firma[key].set(event[j])
-                e = Button(dict_firma["frame" + str(i)], text = "Usun", image=remove_employee_ico, command=lambda frame = dict_firma[str("frame" + str(i))], employee_id = dict_firma["employee_db_id" + str(i)].get(): Are_You_Sure_Button(employee_id, frame, 2))
+                e = Button(dict_firma["frame" + str(i)], text = "Usun", image=remove_entry_ico, command=lambda frame = dict_firma[str("frame" + str(i))], employee_id = dict_firma["employee_db_id" + str(i)].get(): Are_You_Sure_Button(employee_id, frame, 2))
                 e.grid(row=0, column=8)
         i = i + 1
         place_y += 25

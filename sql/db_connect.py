@@ -1,4 +1,5 @@
 dbLogin = "rcp"
-dbPassword = "PDArcpSERWIS"
-dbHost = "localhost"
+dbPassword = "BARDZOtajneHASLO666"
+dbHost = "dailystoic.pl"
 dbDatabase = "rfid"
+dbPort = "33066"
