@@ -67,8 +67,19 @@ def Update_SQL_Data(table, col_name, value, where1, where2):
     update_sql.execute(sql_query)
     conn.commit()
 
+def Update_SQL_Data_Prepared(prepared_query):
+    print(prepared_query)
+    update_sql = conn.cursor()
+    update_sql.execute(prepared_query)
+    conn.commit()
+    
+
 def Remove_SQL_Data(table, where1, where2):
-    print("DELETE FROM " + table + " WHERE " + where1 + " = " + where2)
+    sql_query = "DELETE FROM " + table + " WHERE " + where1 + " = " + where2
+    update_sql = conn.cursor()
+    update_sql.execute(sql_query)
+    print(sql_query)
+    conn.commit()
 
 def get_employees_by_department(department, frame):
     from windows.wind_mgmt import destroy_frame_content

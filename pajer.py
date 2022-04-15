@@ -12,6 +12,10 @@ departments = Get_SQL_Data("_dzial", "dzial")
 stanowiska = Get_SQL_Data("_stanowisko", "stanowisko")
 firmy = Get_SQL_Data("_firma", "firma")
 miasta = Get_SQL_Data("_lokalizacja", "miasto")
+palacz = Get_SQL_Data("_palacz", "stan")
+lokalizacje = Get_SQL_Data("_lokalizacja", "miasto")
+teamleaders = Get_SQL_Data("_team", "teamleader")
+teamleaders.append("Nie dotyczy")
 
 ico_path = str(Path().absolute()) + "\ico\\"
 remove_employee_ico = PhotoImage(file = ico_path + "delete_employee.png")
@@ -54,10 +58,12 @@ def Are_You_Sure_Button(value, frame, case):
     if case == 1:
         employee = Get_Single_SQL_Data("pracownicy", "imie", value) + " " + Get_Single_SQL_Data("pracownicy", "nazwisko", value)
         Label(are_you_sure, text="Czy na pewno chcesz usunac:\n" + employee).place(x=20,y=30)
+        table_name = "pracownicy"
     elif case == 2:
+        table_name = "obecnosc"
         Label(are_you_sure, text="Czy na pewno chcesz usunac wpis?").place(x=2,y=30)
 
-    Button(are_you_sure, text="Tak", width=10, height=1, bg="orange",command=lambda frame=frame, value=value: [Remove_SQL_Data("pracownicy", "id", value), frame.destroy(), are_you_sure.destroy()]).place(x=65,y=90)
+    Button(are_you_sure, text="Tak", width=10, height=1, bg="orange",command=lambda table_name=table_name, frame=frame, value=value: [Remove_SQL_Data(table_name, "id", value), frame.destroy(), are_you_sure.destroy(), employeesframe.update()]).place(x=65,y=90)
     Button(are_you_sure, text="Nie", width=10, height=1, bg="orange",command=are_you_sure.destroy).place(x=65,y=130)
 
 def Create_Top_table():
@@ -272,11 +278,94 @@ def Print_Employees_By_Localization(localization):
     Create_Top_table()
     Create_Table(employees)
 
+def Add_Employee_button(window):
+    fname=first_name.get()
+    sname=second_name.get()
+    dprm=emp_department.get()
+    smk=smoker.get()
+    lclz=emp_localiziation.get()
+    tmld=teamleader.get()
+    crdi=emp_card_id.get()
+    arng=arrangement.get()
+    cmpy=company.get()
+    pst=position.get()
+    #applying empty validation
+    if fname == '' or sname == '' or dprm == 'DZIAL' or smk == 'NIE/TAK' or lclz == "MIASTO" or tmld == "TEAMLEADER" or crdi == "" or arng == "UMOWA" or cmpy == "FIRMA" or pst == "STANOWISKO":
+        emp_message.set("Uzupelnij wszystkie pola!")
+    else:
+        dprm = Get_SQL_Data_ForUpdate("_dzial", "dzial", dprm)
+        smk = Get_SQL_Data_ForUpdate("_palacz", "stan", smk)
+        lclz = Get_SQL_Data_ForUpdate("_lokalizacja", "miasto", lclz)
+        if tmld == "Nie dotyczy":
+            tmld = "NULL"
+        else:
+            tmld = Get_SQL_Data_ForUpdate("_team", "teamleader", tmld)
+        arng = Get_SQL_Data_ForUpdate("_umowa", "rodzaj", arng)
+        cmpy = Get_SQL_Data_ForUpdate("_firma", "firma", cmpy)
+        pst = Get_SQL_Data_ForUpdate("_stanowisko", "stanowisko", pst)
+        sql_query_addemployee = "INSERT INTO pracownicy (imie, nazwisko, palacz, dzial, lokalizacja, teamleader, karta, umowa, firma, stanowisko) VALUES ('"+fname+"','"+sname+"',"+str(smk)+","+str(dprm)+","+str(lclz)+","+str(tmld)+",'"+str(crdi)+"',"+str(arng)+","+str(cmpy)+","+str(pst)+");"
+        print(tmld)
+        Update_SQL_Data_Prepared(sql_query_addemployee)
+        window.destroy()
+        employeesframe.update()
+        
+
 def Add_Employee_Window():
     newWindow = Toplevel()
     newWindow.title("Dodawanie pracownika")
-    newWindow.geometry("300x250")
-    Label(newWindow, text ="#TODO").pack()
+    newWindow.geometry("500x350")
+    global first_name, second_name, smoker, emp_department, emp_localiziation, teamleader, emp_card_id, arrangement, company, position, emp_message
+    first_name  = StringVar()
+    second_name = StringVar()
+    smoker = StringVar()
+    smoker.set("NIE/TAK")
+    emp_department = StringVar()
+    emp_department.set("DZIAL")
+    emp_localiziation = StringVar()
+    emp_localiziation.set("MIASTO")
+    teamleader = StringVar()
+    teamleader.set("TEAMLEADER")
+    emp_card_id = StringVar()
+    arrangement = StringVar()
+    arrangement.set("UMOWA")
+    company = StringVar()
+    company.set("FIRMA")
+    position = StringVar()
+    position.set("STANOWISKO")
+    emp_message = StringVar()
+
+    Label(newWindow, text="Imie:").place(x=40,y=30)
+    Entry(newWindow, textvariable=first_name).place(x=80,y=30)
+
+    Label(newWindow, text="Nazwisko:").place(x=220,y=30)
+    Entry(newWindow, textvariable=second_name).place(x=290,y=30)
+
+    Label(newWindow, text="Palacz:").place(x=34,y=70)
+    OptionMenu(newWindow, smoker, *palacz).place(x=80,y=66)
+
+    Label(newWindow, text="Dzial:").place(x=220,y=70)
+    OptionMenu(newWindow, emp_department, *departments).place(x=290,y=66)
+
+    Label(newWindow, text="Lokalizacja:").place(x=15,y=110)
+    OptionMenu(newWindow, emp_localiziation, *lokalizacje).place(x=80,y=106)
+
+    Label(newWindow, text="TeamLeader:").place(x=220,y=110)
+    OptionMenu(newWindow, teamleader, *teamleaders).place(x=290,y=106)
+
+    Label(newWindow, text="ID karty:").place(x=27,y=150)
+    Entry(newWindow, textvariable=emp_card_id).place(x=80,y=150)
+
+    Label(newWindow, text="Umowa:").place(x=220,y=150)
+    OptionMenu(newWindow, arrangement, *umowy).place(x=290,y=146)
+
+    Label(newWindow, text="Firma:").place(x=35,y=190)
+    OptionMenu(newWindow, company, *firmy).place(x=80,y=186)
+
+    Label(newWindow, text="Stanowisko:").place(x=220,y=190)
+    OptionMenu(newWindow, position, *stanowiska).place(x=290,y=186)
+
+    Label(newWindow, text="",textvariable=emp_message).place(x=174,y=240)
+    Button(newWindow, text="Dodaj pracownika", width=15, height=2, bg="orange",command=lambda: Add_Employee_button(newWindow)).place(x=180,y=270)
 
 def clear(frame_name):
     list = frame_name.grid_slaves()
