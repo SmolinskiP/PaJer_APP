@@ -16,6 +16,11 @@ palacz = Get_SQL_Data("_palacz", "stan")
 lokalizacje = Get_SQL_Data("_lokalizacja", "miasto")
 teamleaders = Get_SQL_Data("_team", "teamleader")
 teamleaders.append("Nie dotyczy")
+pracownicyzid = Get_SQL_Employees_ID()
+pracownicyzid['PRACOWNIK'] = "*"
+pracownicybezid = []
+for item in pracownicyzid:
+    pracownicybezid.append(item)
 
 ico_path = str(Path().absolute()) + "\ico\\"
 remove_employee_ico = PhotoImage(file = ico_path + "delete_employee.png")
@@ -377,14 +382,17 @@ def Destroy_Old():
     clear(leftframe)
     clear(leftsquare)
 
-def Get_Date_From_Callendar():
-    dt = select_1.get_date()
+def Get_Date_From_Callendar(callendar_name):
+    dt = callendar_name.get_date()
     str_dt=dt.strftime("%Y-%m-%d")
+    #print(str_dt)
     return str_dt
 
-def Print_Occurance(input_type, input_value):
+def Print_Occurance(input_type, input_value, input_value_2, employee_input):
     if input_type == 1:
         occurance = get_occurence_by_entry_time(input_value, employeesframe)
+    elif input_type == 2:
+        occurance = get_occurence_by_entry_time_two(input_value, input_value_2, employee_input, employeesframe)
     Create_Top_table_occurance()
     Create_Table_Occurance(occurance)
 
@@ -417,12 +425,26 @@ def Create_Occurance_Tab():
     Create_Table_Occurance(occurance)
     global date_input
     date_input=StringVar()
+    global date_input_2
+    date_input_2=StringVar()
     global select_1
+    global select_2
+    global employee_input
+    employee_input=StringVar()
+    employee_input.set("PRACOWNIK")
+
+    label_1 = Label(topframe, text="OD:").grid(column=0, row=0)
+    label_2 = Label(topframe, text="DO:").grid(column=0, row=1)
+
     select_1 = DateEntry(topframe,selectmode='day', width=22, textvariable=date_input)
     select_1.grid(column=1, row=0, sticky='nw')
+    select_2 = DateEntry(topframe,selectmode='day', width=22, textvariable=date_input_2)
+    select_2.grid(column=1, row=1, sticky='nw')
 
-    btn_2 = Button(topframe, text="Odswiez", width=20, command=lambda: Print_Occurance(1, Get_Date_From_Callendar()))
-    btn_2.grid(column=1, row=2, sticky='ew')
+    opt_1 = OptionMenu(topframe, employee_input, *pracownicybezid).grid(column=2, row=1)
+
+    btn_2 = Button(topframe, text="Odswiez", width=10, command=lambda: Print_Occurance(2, Get_Date_From_Callendar(select_1), Get_Date_From_Callendar(select_2), pracownicyzid[employee_input.get()]))
+    btn_2.grid(column=2, row=0, sticky='ew')
 
     obecnosc_btn = Button(leftsquare, text="LISTA PRACOWNIKOW", bg='green', width=20, height=2, command=Create_Employee_Tab)
     obecnosc_btn.grid(column=3, row=0, sticky='ew')
