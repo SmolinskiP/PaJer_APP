@@ -4,9 +4,12 @@ from windows.pwd import *
 from datetime import date
 from tkcalendar import DateEntry
 from pathlib import Path
+from tktimepicker import AnalogPicker, AnalogThemes, SpinTimePickerModern, SpinTimePickerOld
+from tktimepicker import constants
 
 login_form()
 
+akcje = Get_SQL_Data("_action", "action")
 umowy = Get_SQL_Data("_umowa", "rodzaj")
 departments = Get_SQL_Data("_dzial", "dzial")
 stanowiska = Get_SQL_Data("_stanowisko", "stanowisko")
@@ -313,7 +316,74 @@ def Add_Employee_button(window):
         Update_SQL_Data_Prepared(sql_query_addemployee)
         window.destroy()
         employeesframe.update()
-        
+
+def Get_Date_From_Callendar(callendar_name):
+    dt = callendar_name.get_date()
+    str_dt=dt.strftime("%Y-%m-%d")
+    #print(str_dt)
+    return str_dt
+
+def Add_Entry_button(window, date):
+    akcja = ent_akcja.get()
+    if akcja == 'RODZAJ WPISU':
+        emp_message.set("Uzupelnij wszystkie pola!")
+    else:
+        koment = comment.get()
+        employee_entry = pracownicyzid[employee_input5.get()]
+        time = time_picker.time()
+        time_str = ["07", "00"]
+        if time[0] < 10:
+            time_str[0] = "0" + str(time[0])
+        else:
+            time_str[0] = str(time[0])
+        if time[1] < 10:
+            time_str[1] = "0" + str(time[1])
+        else:
+            time_str[1] = str(time[1])
+        time = " " + time_str[0] + ":" + time_str[1] + ":00"
+        acti = Get_SQL_Data_ForUpdate("_action", "action", akcja)
+        sql_query = "INSERT INTO obecnosc (pracownik, time, action, komentarz) VALUES ('" + str(employee_entry) + "', '" + date + time + "', '" + str(acti) + "', '" + koment + "')"
+        Update_SQL_Data_Prepared(sql_query)
+        window.destroy()
+
+def Add_Entry_Window():
+    today = date.today()
+    d1 = today.strftime("%Y-%m-%d")
+
+    newWindow = Toplevel()
+    newWindow.title("Dodawanie wpisu")
+    newWindow.geometry("350x350")
+    global ent_akcja, emp_message, employee_input5, data_wpis, comment, time_picker
+    comment = StringVar()
+    data_wpis = StringVar()
+    employee_input5 = StringVar()
+    employee_input5.set("PRACOWNIK")
+    ent_akcja = StringVar()
+    ent_akcja.set("RODZAJ WPISU")
+    emp_message = StringVar()
+
+    Label(newWindow, text="Data:").place(x=120,y=30)
+    cal2 = DateEntry(newWindow,selectmode='day', width=22, textvariable=data_wpis)
+    cal2.place(x=160,y=30)
+
+    Label(newWindow, text="Czas:").place(x=120,y=74)
+    time_picker = SpinTimePickerModern(newWindow)
+    time_picker.addAll(constants.HOURS24)
+    time_picker.configureAll(bg="#404040", height=1, fg="#ffffff", font=("Times", 16), hoverbg="#404040", hovercolor="#d73333", clickedbg="#2e2d2d", clickedcolor="#d73333")
+    time_picker.configure_separator(bg="#404040", fg="#ffffff")
+    time_picker.place(x=160,y=70)
+
+    Label(newWindow, text="Rodzaj wpisu:").place(x=77,y=114)
+    OptionMenu(newWindow, ent_akcja, *akcje).place(x=160,y=110)
+
+    Label(newWindow, text="Pracownik:").place(x=87,y=150)
+    OptionMenu(newWindow, employee_input5, *pracownicybezid).place(x=160,y=150)
+
+    Label(newWindow, text="Komentarz:").place(x=88,y=195)
+    Entry(newWindow, textvariable=comment).place(x=160,y=195)
+
+    Label(newWindow, text="",textvariable=emp_message).place(x=134,y=240)
+    Button(newWindow, text="Dodaj wpis", width=15, height=2, bg="orange",command=lambda: Add_Entry_button(newWindow, Get_Date_From_Callendar(cal2))).place(x=130,y=270)
 
 def Add_Employee_Window():
     newWindow = Toplevel()
@@ -382,13 +452,11 @@ def Destroy_Old():
     clear(leftframe)
     clear(leftsquare)
 
-def Get_Date_From_Callendar(callendar_name):
-    dt = callendar_name.get_date()
-    str_dt=dt.strftime("%Y-%m-%d")
-    #print(str_dt)
-    return str_dt
+
 
 def Print_Occurance(input_type, input_value, input_value_2, employee_input):
+    print(input_type)
+    print(input_value)
     if input_type == 1:
         occurance = get_occurence_by_entry_time(input_value, employeesframe)
     elif input_type == 2:
@@ -441,10 +509,13 @@ def Create_Occurance_Tab():
     select_2 = DateEntry(topframe,selectmode='day', width=22, textvariable=date_input_2)
     select_2.grid(column=1, row=1, sticky='nw')
 
-    opt_1 = OptionMenu(topframe, employee_input, *pracownicybezid).grid(column=2, row=1)
+    opt_1 = OptionMenu(topframe, employee_input, *pracownicybezid).grid(column=2, row=0)
 
     btn_2 = Button(topframe, text="Odswiez", width=10, command=lambda: Print_Occurance(2, Get_Date_From_Callendar(select_1), Get_Date_From_Callendar(select_2), pracownicyzid[employee_input.get()]))
-    btn_2.grid(column=2, row=0, sticky='ew')
+    btn_2.grid(column=2, row=1, sticky='ew')
+
+    btn_1 = Button(leftframe, text="Dodaj\nwpis", width=20, command=lambda: Add_Entry_Window())
+    btn_1.grid(column=0, row=0, sticky='ew')
 
     obecnosc_btn = Button(leftsquare, text="LISTA PRACOWNIKOW", bg='green', width=20, height=2, command=Create_Employee_Tab)
     obecnosc_btn.grid(column=3, row=0, sticky='ew')

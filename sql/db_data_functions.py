@@ -122,9 +122,10 @@ def get_occurence_by_employee(employee_id, frame):
 def get_occurence_by_entry_time(entry_time, frame):
     from windows.wind_mgmt import destroy_frame_content
     destroy_frame_content(frame)
-
+    sql_query = "SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, obecnosc.time, _action.action, obecnosc.komentarz, obecnosc.id FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik LEFT JOIN _action ON obecnosc.action = _action.id WHERE obecnosc.time LIKE '" + str(entry_time) + "%' ORDER BY nazwisko"
+    print(sql_query)
     get_occurance = conn.cursor()
-    get_occurance.execute("SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, obecnosc.time, _action.action, obecnosc.komentarz, obecnosc.id FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik LEFT JOIN _action ON obecnosc.action = _action.id WHERE obecnosc.time LIKE '" + str(entry_time) + "%' ORDER BY nazwisko")
+    get_occurance.execute(sql_query)
     occurance = get_occurance.fetchall()
     return occurance
 
@@ -136,6 +137,7 @@ def get_occurence_by_entry_time_two(entry_time_from, entry_time_to, entry_employ
     else:
         sql_query = "SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, obecnosc.time, _action.action, obecnosc.komentarz, obecnosc.id FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik LEFT JOIN _action ON obecnosc.action = _action.id WHERE obecnosc.time >= '" + entry_time_from + "' AND obecnosc.time <= '" + entry_time_to + "' AND pracownik = " + str(entry_employee) + " ORDER BY nazwisko, imie, time"
     from windows.wind_mgmt import destroy_frame_content
+    print(sql_query)
     destroy_frame_content(frame)
     
     get_occurance = conn.cursor()
