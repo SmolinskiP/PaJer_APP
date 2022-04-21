@@ -6,6 +6,13 @@ from tkcalendar import DateEntry
 from pathlib import Path
 from tktimepicker import AnalogPicker, AnalogThemes, SpinTimePickerModern, SpinTimePickerOld
 from tktimepicker import constants
+import requests
+import os
+
+version = '0.3.0'
+r = requests.get('http://dailystoic.pl/rcp/version.txt', allow_redirects=True)
+update_version = str(r.content)[2:-1]
+print(update_version)
 
 login_form()
 
@@ -21,6 +28,7 @@ teamleaders = Get_SQL_Data("_team", "teamleader")
 teamleaders.append("Nie dotyczy")
 pracownicyzid = Get_SQL_Employees_ID()
 pracownicyzid['PRACOWNIK'] = "*"
+pracownicyzid['WSZYSCY'] = "*"
 pracownicybezid = []
 for item in pracownicyzid:
     pracownicybezid.append(item)
@@ -32,8 +40,9 @@ remove_entry_ico = PhotoImage(file = ico_path + "remove_entry.png")
 global employeesframe
 global employeescanvas
 
-topframe = Frame(main_window)
-topframe.grid(row=0, column=1, sticky='w')
+topframe = Frame(main_window, width=200)
+topframe.grid(row=0, column=1, sticky='nswe')
+
 
 leftsquare = Frame(main_window)
 leftsquare.grid(row=0, column=0)
@@ -58,6 +67,106 @@ department.set("Dzial")
 localization = StringVar(main_window)
 localization.set("Miasto")
 dict_firma = {}
+
+def Get_Date_From_Callendar(callendar_name):
+    dt = callendar_name.get_date()
+    str_dt=dt.strftime("%Y-%m-%d")
+    #print(str_dt)
+    return str_dt
+
+def Generate_Gang_File(window, date1, date2, employee):
+    import getpass
+    usrname = getpass.getuser()
+    destination = f'C:\\Users\\{usrname}\\Documents\\Rejestr_temp.txt'
+    destination2 = f'C:\\Users\\{usrname}\\Documents\\Rejestr.txt'
+    if employee == "*":
+        sql_query = "SELECT obecnosc.time, obecnosc.action, pracownicy.karta FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik WHERE obecnosc.time > '" + date1 + " 00:00:01' AND obecnosc.time < '" + date2 + " 23:59:59' AND pracownicy.karta IS NOT NULL"
+    else:
+        sql_query = "SELECT obecnosc.time, obecnosc.action, pracownicy.karta FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik WHERE obecnosc.time > '" + date1 + " 00:00:01' AND obecnosc.time < '" + date2 + " 23:59:59' AND pracownicy.karta IS NOT NULL AND obecnosc.pracownik = " + str(employee)
+    print(sql_query)
+    try:
+        get_sql = conn.cursor()
+        get_sql.execute(sql_query)
+        sql_result = get_sql.fetchall()
+        gang_file = open(destination, 'a+')
+        for entry in sql_result:
+            gang_cardid = "1" + entry[2][1:]
+            gang_date = str(entry[0])
+            gang_action = str(entry[1])
+            if entry[1] == 1 or entry[1] == 2:
+                file_line = gang_cardid + "-" + gang_date[2:] + "-" + gang_action + "\n"
+            elif entry[1] in (3, 4, 12, 16, 17, 18, 19):
+                print("Omijam wpis " + gang_date + " " + gang_action + " " + gang_cardid)
+            else:
+                if entry[1] < 10:
+                    gang_action = "0" + gang_action
+                file_line = gang_cardid + "-" + gang_date[2:11] + "08:00:00-1-" + gang_action + "\n" + gang_cardid + "-" + gang_date[2:11] + "16:00:00-2-" + gang_action + "\n"
+            gang_file.write(file_line)
+        gang_file.close()
+
+        lines_seen = set() # holds lines already seen
+        outfile = open(destination2, "w")
+        for line in open(destination, "r"):
+            if line not in lines_seen: # not a duplicate
+                outfile.write(line)
+                lines_seen.add(line)
+        outfile.close()
+        os.remove(destination) 
+        window.destroy()
+    except:
+        gng_message.set("Nieokreslony blad")
+
+def Gang_Window():
+    today = date.today()
+    d1 = today.strftime("%Y-%m-%d")
+
+    newWindow = Toplevel()
+    newWindow.title("Generowanie pliku do GANGa")
+    newWindow.geometry("350x350")
+    global gng_message, employee_input5, data_wpis, data_wpis2
+    data_wpis = StringVar()
+    data_wpis2 = StringVar()
+    employee_input5 = StringVar()
+    employee_input5.set("WSZYSCY")
+    gng_message = StringVar()
+    Label(newWindow, text="Data OD:").place(x=80,y=30)
+    calgang1 = DateEntry(newWindow,selectmode='day', width=22, textvariable=data_wpis)
+    calgang1.place(x=140,y=30)
+
+    Label(newWindow, text="Data DO:").place(x=80,y=70)
+    calgang2 = DateEntry(newWindow,selectmode='day', width=22, textvariable=data_wpis2)
+    calgang2.place(x=140,y=70)
+
+    Label(newWindow, text="Pracownik:").place(x=67,y=110)
+    OptionMenu(newWindow, employee_input5, *pracownicybezid).place(x=140,y=105)
+
+    Label(newWindow, text="",textvariable=gng_message).place(x=114,y=150)
+    Button(newWindow, text="Dodaj wpis", width=15, height=2, bg="orange", command=lambda: Generate_Gang_File(newWindow, Get_Date_From_Callendar(calgang1), Get_Date_From_Callendar(calgang2), pracownicyzid[employee_input5.get()])).place(x=110,y=180)
+
+def Download_Install_Update():
+    from urllib.request import urlretrieve
+    import getpass
+    dwn_message.set("Pobrano...")
+    url = 'http://dailystoic.pl/rcp/PaJer_install.exe'
+    usrname = getpass.getuser()
+    destination = f'C:\\Users\\{usrname}\\Downloads\\PaJer_install.exe'
+    download = urlretrieve(url, destination)
+    import subprocess
+    returned_value = subprocess.call(destination, shell=True)
+    print('returned value:', returned_value)
+
+def Actualization_Window(version, webversion):
+    newWindow = Toplevel()
+    newWindow.title("Aktualizacja")
+    newWindow.geometry("300x100")
+    if version == webversion:
+        Label(newWindow, text="Wszystko jest aktualne :)", font='Helvetica 14 bold').place(x=40,y=20)
+        Button(newWindow, text="OK :D", width=10, height=1, bg="green", command= lambda:newWindow.destroy()).place(x=105,y=60 )
+    else:
+        global dwn_message
+        dwn_message = StringVar()
+        Label(newWindow, text="", textvariable=dwn_message).place(x=800,y=80)
+        Button(newWindow, text="Pobierz aktualizacje", width=15, height=2, bg="orange", command = lambda: Download_Install_Update()).place(x=95,y=30)
 
 def Are_You_Sure_Button(value, frame, case):
     are_you_sure = Toplevel()
@@ -317,12 +426,6 @@ def Add_Employee_button(window):
         window.destroy()
         employeesframe.update()
 
-def Get_Date_From_Callendar(callendar_name):
-    dt = callendar_name.get_date()
-    str_dt=dt.strftime("%Y-%m-%d")
-    #print(str_dt)
-    return str_dt
-
 def Add_Entry_button(window, date):
     akcja = ent_akcja.get()
     if akcja == 'RODZAJ WPISU':
@@ -346,6 +449,53 @@ def Add_Entry_button(window, date):
         Update_SQL_Data_Prepared(sql_query)
         window.destroy()
 
+def Add_Comment_button(window, date):
+    employee_entry = pracownicyzid[employee_input5.get()]
+    koment = comment.get()
+    if employee_entry == '*' or koment == '':
+        emp_message.set("Uzupelnij wszystkie pola!")
+    else:
+        sql_query = "SELECT id from obecnosc WHERE pracownik = " + str(employee_entry) + " AND action = 1 AND time LIKE '" + date + "%'"
+        print(sql_query)
+        try:
+            get_sql = conn.cursor()
+            get_sql.execute(sql_query)
+            sql_result = get_sql.fetchall()[0][0]
+            update_sql = "UPDATE obecnosc SET komentarz = '" + koment + "' WHERE id = " + str(sql_result)
+            print(update_sql)
+            get_sql.execute(update_sql)
+            conn.commit()
+            window.destroy()
+        except:
+            emp_message.set("Prawdopodobnie brak wpisu")
+
+def Add_Comment_Window():
+    today = date.today()
+    d1 = today.strftime("%Y-%m-%d")
+
+    newWindow = Toplevel()
+    newWindow.title("Dodawanie komentarza")
+    newWindow.geometry("350x350")
+    global emp_message, employee_input5, data_wpis, comment
+    comment = StringVar()
+    data_wpis = StringVar()
+    employee_input5 = StringVar()
+    employee_input5.set(employee_input.get())
+    emp_message = StringVar()
+
+    Label(newWindow, text="Data:").place(x=100,y=30)
+    cal2 = DateEntry(newWindow,selectmode='day', width=22, textvariable=data_wpis)
+    cal2.place(x=140,y=30)
+
+    Label(newWindow, text="Pracownik:").place(x=67,y=80)
+    OptionMenu(newWindow, employee_input5, *pracownicybezid).place(x=140,y=76)
+
+    Label(newWindow, text="Komentarz:").place(x=68,y=130)
+    Entry(newWindow, textvariable=comment).place(x=140,y=130)
+
+    Label(newWindow, text="",textvariable=emp_message).place(x=105,y=160)
+    Button(newWindow, text="Dodaj wpis", width=15, height=2, bg="orange",command=lambda: Add_Comment_button(newWindow, Get_Date_From_Callendar(cal2))).place(x=110,y=190)
+
 def Add_Entry_Window():
     today = date.today()
     d1 = today.strftime("%Y-%m-%d")
@@ -357,7 +507,7 @@ def Add_Entry_Window():
     comment = StringVar()
     data_wpis = StringVar()
     employee_input5 = StringVar()
-    employee_input5.set("PRACOWNIK")
+    employee_input5.set(employee_input.get())
     ent_akcja = StringVar()
     ent_akcja.set("RODZAJ WPISU")
     emp_message = StringVar()
@@ -452,8 +602,6 @@ def Destroy_Old():
     clear(leftframe)
     clear(leftsquare)
 
-
-
 def Print_Occurance(input_type, input_value, input_value_2, employee_input):
     print(input_type)
     print(input_value)
@@ -483,6 +631,9 @@ def Create_Employee_Tab():
 
     btn_2 = Button(leftframe, text="Zmien\nhaslo", width=20, command=lambda: Change_Password())
     btn_2.grid(column=0, row=1, sticky='ew')
+
+    actu_btn = Button(main_window, text="Sprawdz\naktualizacje", width=10, height=2, command=lambda: Actualization_Window(version, update_version))
+    actu_btn.grid(column=2, row=0, sticky='e')
 
 def Create_Occurance_Tab():
     today = date.today()
@@ -517,8 +668,18 @@ def Create_Occurance_Tab():
     btn_1 = Button(leftframe, text="Dodaj\nwpis", width=20, command=lambda: Add_Entry_Window())
     btn_1.grid(column=0, row=0, sticky='ew')
 
+    btn_3 = Button(leftframe, text="Dodaj\nkomentarz", width=20, command=lambda: Add_Comment_Window())
+    btn_3.grid(column=0, row=1, sticky='ew')
+
     obecnosc_btn = Button(leftsquare, text="LISTA PRACOWNIKOW", bg='green', width=20, height=2, command=Create_Employee_Tab)
     obecnosc_btn.grid(column=3, row=0, sticky='ew')
+
+    actu_btn = Button(main_window, text="Sprawdz\naktualizacje", width=10, height=2, command=lambda: Actualization_Window(version, update_version))
+    actu_btn.grid(column=2, row=0, sticky='e')
+
+    gang_btn = Button(main_window, text="Generuj plik\nWapro GANG", width=10, height=2, comman=lambda: Gang_Window())
+    gang_btn.grid(column=2, row=1, sticky='n')
+
 
 
 
@@ -541,6 +702,14 @@ btn_1.grid(column=0, row=0, sticky='ew')
 
 btn_2 = Button(leftframe, text="Zmien\nhaslo", width=20, command=lambda: Change_Password())
 btn_2.grid(column=0, row=1, sticky='ew')
+
+
+
+
+actu_btn = Button(main_window, text="Sprawdz\naktualizacje", width=10, height=2, command=lambda: Actualization_Window(version, update_version))
+actu_btn.grid(column=2, row=0, sticky='n')
+
+
 
 Print_Employees_By_Department("Biuro")
 

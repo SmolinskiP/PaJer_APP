@@ -38,5 +38,8 @@ def login_form():
     Button(login_screen, text="Login", width=10, height=1, bg="orange",command=login).place(x=105,y=130)
 
 
+    login_screen.destroy()
+
+
 main_window = Tk()
 main_window.title("PaJer - najlepszy program Rejestracji Czasu Pracy we wszechswiecie")
