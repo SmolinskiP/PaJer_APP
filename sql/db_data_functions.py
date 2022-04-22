@@ -28,8 +28,11 @@ def Get_SQL_Data(table, data1):
         table.append(item[0])
     return table
 
-def Get_SQL_Employees_ID():
-    sql_query = "SELECT nazwisko, imie, id FROM pracownicy ORDER BY nazwisko"
+def Get_SQL_Employees_ID(rights):
+    if rights == 5:
+        sql_query = "SELECT nazwisko, imie, id FROM pracownicy WHERE dzial = 5 ORDER BY nazwisko"
+    else:
+        sql_query = "SELECT nazwisko, imie, id FROM pracownicy ORDER BY nazwisko"
     get_sql = conn.cursor()
     get_sql.execute(sql_query)
     prepare_dict = get_sql.fetchall()
@@ -84,7 +87,6 @@ def Update_SQL_Data_Prepared(prepared_query):
     update_sql.execute(prepared_query)
     conn.commit()
     
-
 def Remove_SQL_Data(table, where1, where2):
     sql_query = "DELETE FROM " + table + " WHERE " + where1 + " = " + where2
     update_sql = conn.cursor()
@@ -120,9 +122,12 @@ def get_occurence_by_employee(employee_id, frame):
     return occurance
 
 def get_occurence_by_entry_time(entry_time, frame):
+    from pajer import rights
     from windows.wind_mgmt import destroy_frame_content
     destroy_frame_content(frame)
     sql_query = "SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, obecnosc.time, _action.action, obecnosc.komentarz, obecnosc.id FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik LEFT JOIN _action ON obecnosc.action = _action.id WHERE obecnosc.time LIKE '" + str(entry_time) + "%' ORDER BY nazwisko"
+    if rights == 5:
+        sql_query = "SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, obecnosc.time, _action.action, obecnosc.komentarz, obecnosc.id FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik LEFT JOIN _action ON obecnosc.action = _action.id WHERE obecnosc.time LIKE '" + str(entry_time) + "%' AND pracownicy.dzial = 5 ORDER BY nazwisko"
     print(sql_query)
     get_occurance = conn.cursor()
     get_occurance.execute(sql_query)
@@ -130,10 +135,13 @@ def get_occurence_by_entry_time(entry_time, frame):
     return occurance
 
 def get_occurence_by_entry_time_two(entry_time_from, entry_time_to, entry_employee, frame):
+    from pajer import rights
     entry_time_from = str(entry_time_from) + " 00:00:01"
     entry_time_to = str(entry_time_to) + " 23:59:59"
     if entry_employee == "*":
         sql_query = "SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, obecnosc.time, _action.action, obecnosc.komentarz, obecnosc.id FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik LEFT JOIN _action ON obecnosc.action = _action.id WHERE obecnosc.time >= '" + entry_time_from + "' AND obecnosc.time <= '" + entry_time_to + "' ORDER BY nazwisko, imie, time"
+    elif entry_employee == "Serwis":
+        sql_query = "SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, obecnosc.time, _action.action, obecnosc.komentarz, obecnosc.id FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik LEFT JOIN _action ON obecnosc.action = _action.id WHERE obecnosc.time >= '" + entry_time_from + "' AND obecnosc.time <= '" + entry_time_to + "' AND pracownicy.dzial = 5 ORDER BY nazwisko, imie, time"
     else:
         sql_query = "SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, obecnosc.time, _action.action, obecnosc.komentarz, obecnosc.id FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik LEFT JOIN _action ON obecnosc.action = _action.id WHERE obecnosc.time >= '" + entry_time_from + "' AND obecnosc.time <= '" + entry_time_to + "' AND pracownik = " + str(entry_employee) + " ORDER BY nazwisko, imie, time"
     from windows.wind_mgmt import destroy_frame_content

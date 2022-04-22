@@ -9,64 +9,84 @@ from tktimepicker import constants
 import requests
 import os
 
-version = '0.3.0'
+version = '0.4.0'
 r = requests.get('http://dailystoic.pl/rcp/version.txt', allow_redirects=True)
 update_version = str(r.content)[2:-1]
 print(update_version)
 
 login_form()
+logged_user = ""
 
-akcje = Get_SQL_Data("_action", "action")
-umowy = Get_SQL_Data("_umowa", "rodzaj")
-departments = Get_SQL_Data("_dzial", "dzial")
-stanowiska = Get_SQL_Data("_stanowisko", "stanowisko")
-firmy = Get_SQL_Data("_firma", "firma")
-miasta = Get_SQL_Data("_lokalizacja", "miasto")
-palacz = Get_SQL_Data("_palacz", "stan")
-lokalizacje = Get_SQL_Data("_lokalizacja", "miasto")
-teamleaders = Get_SQL_Data("_team", "teamleader")
-teamleaders.append("Nie dotyczy")
-pracownicyzid = Get_SQL_Employees_ID()
-pracownicyzid['PRACOWNIK'] = "*"
-pracownicyzid['WSZYSCY'] = "*"
-pracownicybezid = []
-for item in pracownicyzid:
-    pracownicybezid.append(item)
+try:
+    logged_user = uname
+except Exception as e:
+    print(e)
+print(logged_user)
 
-ico_path = str(Path().absolute()) + "\ico\\"
-remove_employee_ico = PhotoImage(file = ico_path + "delete_employee.png")
-remove_entry_ico = PhotoImage(file = ico_path + "remove_entry.png")
+if logged_user != "":
+    from queries.rights import *
 
-global employeesframe
-global employeescanvas
+    sql_query = "SELECT uprawnienia FROM konta WHERE login = '" + logged_user + "'"
+    get_sql = conn.cursor()
+    get_sql.execute(sql_query)
+    rights = get_sql.fetchall()[0][0]
 
-topframe = Frame(main_window, width=200)
-topframe.grid(row=0, column=1, sticky='nswe')
+    umowy = Get_SQL_Data("_umowa", "rodzaj")
+    firmy = Get_SQL_Data("_firma", "firma")
+    palacz = Get_SQL_Data("_palacz", "stan")
+
+    akcje = Prepare_SQL_akcje(rights)
+    departments = Prepare_SQL_departments(rights)
+    stanowiska = Prepare_SQL_stanowiska(rights)
+    miasta = Prepare_SQL_miasta(rights)
+    teamleaders = Get_SQL_Data("_team", "teamleader")
+    teamleaders.append("Nie dotyczy")
+    pracownicyzid = Get_SQL_Employees_ID(rights)
+    if rights == 777:
+        pracownicyzid['PRACOWNIK'] = "*"
+        pracownicyzid['WSZYSCY'] = "*"
+    elif rights == 5:
+        pracownicyzid['SERWIS_ALL'] = "Serwis"
+    pracownicybezid = []
 
 
-leftsquare = Frame(main_window)
-leftsquare.grid(row=0, column=0)
+    for item in pracownicyzid:
+        pracownicybezid.append(item)
 
-leftframe = Frame(main_window)
-leftframe.grid(row=1, column=0, sticky='n')
+    ico_path = str(Path().absolute()) + "\ico\\"
+    remove_employee_ico = PhotoImage(file = ico_path + "delete_employee.png")
+    remove_entry_ico = PhotoImage(file = ico_path + "remove_entry.png")
 
-employeescanvas = Frame(main_window, width=500, height=400)
-employeescanvas.grid(row=1, column=1)
+    global employeesframe
+    global employeescanvas
 
-employeesframe = Canvas(employeescanvas, bg='#4A7A8C', width=150, height=150, scrollregion=(0,0,2000,2000))
-employeesframe.configure(scrollregion=employeesframe.bbox("all"))
-vertibar=Scrollbar(employeescanvas, orient=VERTICAL)
-vertibar.pack(side=RIGHT,fill=Y)
-vertibar.config(command=employeesframe.yview)
-employeesframe.config(width=1300,height=600)
-employeesframe.config(yscrollcommand=vertibar.set)
-employeesframe.pack(expand=True,side=LEFT)
+    topframe = Frame(main_window, width=200)
+    topframe.grid(row=0, column=1, sticky='nswe')
 
-department = StringVar(main_window)
-department.set("Dzial")
-localization = StringVar(main_window)
-localization.set("Miasto")
-dict_firma = {}
+
+    leftsquare = Frame(main_window)
+    leftsquare.grid(row=0, column=0)
+
+    leftframe = Frame(main_window)
+    leftframe.grid(row=1, column=0, sticky='n')
+
+    employeescanvas = Frame(main_window, width=500, height=400)
+    employeescanvas.grid(row=1, column=1)
+
+    employeesframe = Canvas(employeescanvas, bg='#4A7A8C', width=150, height=150, scrollregion=(0,0,2000,2000))
+    employeesframe.configure(scrollregion=employeesframe.bbox("all"))
+    vertibar=Scrollbar(employeescanvas, orient=VERTICAL)
+    vertibar.pack(side=RIGHT,fill=Y)
+    vertibar.config(command=employeesframe.yview)
+    employeesframe.config(width=1300,height=600)
+    employeesframe.config(yscrollcommand=vertibar.set)
+    employeesframe.pack(expand=True,side=LEFT)
+
+    department = StringVar(main_window)
+    department.set("Dzial")
+    localization = StringVar(main_window)
+    localization.set("Miasto")
+    dict_firma = {}
 
 def Get_Date_From_Callendar(callendar_name):
     dt = callendar_name.get_date()
@@ -113,7 +133,8 @@ def Generate_Gang_File(window, date1, date2, employee):
         outfile.close()
         os.remove(destination) 
         window.destroy()
-    except:
+    except Exception as e:
+        print(e)
         gng_message.set("Nieokreslony blad")
 
 def Gang_Window():
@@ -290,14 +311,15 @@ def Create_Table(employees):
                 e = Entry(dict_firma["frame" + str(i)], width=entry_width, fg='blue') 
                 e.grid(row=0, column=j+1)
                 e.insert(END, dict_firma[key].get())
-            key = str("dzial" + str(i))
-            dict_firma[key] = StringVar(employeesframe)
-            dict_firma[key].set(employee[j])
-            e = Button(dict_firma["frame" + str(i)], text = "Usun", image=remove_employee_ico, command=lambda frame = dict_firma[str("frame" + str(i))], employee_id = dict_firma["employee_id" + str(i)].get(): Are_You_Sure_Button(employee_id, frame, 1))
-            e.grid(row=0, column=10)
+            if rights == 777:
+                key = str("dzial" + str(i))
+                dict_firma[key] = StringVar(employeesframe)
+                dict_firma[key].set(employee[j])
+                e = Button(dict_firma["frame" + str(i)], text = "Usun", image=remove_employee_ico, command=lambda frame = dict_firma[str("frame" + str(i))], employee_id = dict_firma["employee_id" + str(i)].get(): Are_You_Sure_Button(employee_id, frame, 1))
+                e.grid(row=0, column=10)
         i = i + 1
         place_y += 25
-    employeesframe.update()
+    #employeesframe.update()
         
 def Create_Table_Occurance(occurance):
     i = 1
@@ -428,7 +450,7 @@ def Add_Employee_button(window):
 
 def Add_Entry_button(window, date):
     akcja = ent_akcja.get()
-    if akcja == 'RODZAJ WPISU':
+    if akcja == 'RODZAJ WPISU' or employee_input5.get() == "PRACOWNIK" or employee_input5.get() == "SERWIS_ALL":
         emp_message.set("Uzupelnij wszystkie pola!")
     else:
         koment = comment.get()
@@ -536,6 +558,7 @@ def Add_Entry_Window():
     Button(newWindow, text="Dodaj wpis", width=15, height=2, bg="orange",command=lambda: Add_Entry_button(newWindow, Get_Date_From_Callendar(cal2))).place(x=130,y=270)
 
 def Add_Employee_Window():
+    print(uname)
     newWindow = Toplevel()
     newWindow.title("Dodawanie pracownika")
     newWindow.geometry("500x350")
@@ -572,7 +595,7 @@ def Add_Employee_Window():
     OptionMenu(newWindow, emp_department, *departments).place(x=290,y=66)
 
     Label(newWindow, text="Lokalizacja:").place(x=15,y=110)
-    OptionMenu(newWindow, emp_localiziation, *lokalizacje).place(x=80,y=106)
+    OptionMenu(newWindow, emp_localiziation, *miasta).place(x=80,y=106)
 
     Label(newWindow, text="TeamLeader:").place(x=220,y=110)
     OptionMenu(newWindow, teamleader, *teamleaders).place(x=290,y=106)
@@ -619,9 +642,10 @@ def Create_Employee_Tab():
     select_1.config(height=2, width=10)
     select_1.grid(column=1, row=0, sticky='nw')
 
-    select_2 = OptionMenu(topframe, localization, *miasta, command=lambda localization:Print_Employees_By_Localization(localization))
-    select_2.config(height=2, width=10)
-    select_2.grid(column=2, row=0, sticky='nw')
+    if rights != 5:
+        select_2 = OptionMenu(topframe, localization, *miasta, command=lambda localization:Print_Employees_By_Localization(localization))
+        select_2.config(height=2, width=10)
+        select_2.grid(column=2, row=0, sticky='nw')
 
     obecnosc_btn = Button(leftsquare, text="LISTA OBECNOSCI", bg='green', width=20, height=2, command=Create_Occurance_Tab)
     obecnosc_btn.grid(column=3, row=0, sticky='ew')
@@ -686,32 +710,41 @@ def Create_Occurance_Tab():
     
 
 
-select_1 = OptionMenu(topframe, department, *departments, command=lambda department:Print_Employees_By_Department(department))
-select_1.config(height=2, width=10)
-select_1.grid(column=1, row=0, sticky='nw')
+#select_1 = OptionMenu(topframe, department, *departments, command=lambda department:Print_Employees_By_Department(department))
+#select_1.config(height=2, width=10)
+#select_1.grid(column=1, row=0, sticky='nw')
 
-select_2 = OptionMenu(topframe, localization, *miasta, command=lambda localization:Print_Employees_By_Localization(localization))
-select_2.config(height=2, width=10)
-select_2.grid(column=2, row=0, sticky='nw')
+#select_2 = OptionMenu(topframe, localization, *miasta, command=lambda localization:Print_Employees_By_Localization(localization))
+#select_2.config(height=2, width=10)
+#select_2.grid(column=2, row=0, sticky='nw')
 
-obecnosc_btn = Button(leftsquare, text="LISTA OBECNOSCI", bg='green', width=20, height=2, command=Create_Occurance_Tab)
-obecnosc_btn.grid(column=3, row=0, sticky='ew')
+#obecnosc_btn = Button(leftsquare, text="LISTA OBECNOSCI", bg='green', width=20, height=2, command=Create_Occurance_Tab)
+#obecnosc_btn.grid(column=3, row=0, sticky='ew')
 
-btn_1 = Button(leftframe, text="Dodaj\npracownika", width=20, command=lambda: Add_Employee_Window())
-btn_1.grid(column=0, row=0, sticky='ew')
+#btn_1 = Button(leftframe, text="Dodaj\npracownika", width=20, command=lambda: Add_Employee_Window())
+#btn_1.grid(column=0, row=0, sticky='ew')
 
-btn_2 = Button(leftframe, text="Zmien\nhaslo", width=20, command=lambda: Change_Password())
-btn_2.grid(column=0, row=1, sticky='ew')
-
-
-
-
-actu_btn = Button(main_window, text="Sprawdz\naktualizacje", width=10, height=2, command=lambda: Actualization_Window(version, update_version))
-actu_btn.grid(column=2, row=0, sticky='n')
+#btn_2 = Button(leftframe, text="Zmien\nhaslo", width=20, command=lambda: Change_Password())
+#btn_2.grid(column=0, row=1, sticky='ew')
 
 
 
-Print_Employees_By_Department("Biuro")
 
-#main_window.withdraw()
-main_window.mainloop()
+#actu_btn = Button(main_window, text="Sprawdz\naktualizacje", width=10, height=2, command=lambda: Actualization_Window(version, update_version))
+#actu_btn.grid(column=2, row=0, sticky='n')
+
+
+
+
+
+try:
+    print(uname)
+    #login_screen.destroy()
+    if rights == 5:
+        Print_Employees_By_Department("Serwis")
+    else:
+        Print_Employees_By_Department("Biuro")
+except:
+    print("Nie ma mnie")
+    main_window.withdraw()
+    main_window.mainloop()

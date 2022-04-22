@@ -1,22 +1,23 @@
 from tkinter import *
 import hashlib
 from sql.db_connect import *
-
+import mysql.connector as database
 
 def validate_login(uname, input_password):
     db_password = ""
     try:
         from sql.db_data_functions import SQL_Connect
-        conn = SQL_Connect(dbLogin, dbPassword, dbHost, dbDatabase)
+        conn = SQL_Connect(dbLogin, dbPassword, dbHost, dbDatabase, dbPort)
     except database.Error as e:
         print(f"Nie udalo sie polaczyc z baza danych MariaDB: {e}")
 
     try:
         get_db_password = conn.cursor()
-        get_db_password.execute("SELECT password FROM employees WHERE login='%s'" % uname)
+        get_db_password.execute("SELECT haslo FROM konta WHERE login='%s'" % uname)
         db_password = get_db_password.fetchall()[0][0]
-    except:
+    except Exception as e:
         print("Error 77")
+        print(e)
     if hashlib.sha256(input_password.encode()).hexdigest() == db_password:
         return True
     else:
@@ -35,8 +36,16 @@ def change_password_sql():
     elif actual_pwd == "" or pwd == "" or pwd2 == "":
         message.set("Uzupelnij prosze wszystkie pola")
     else:
-        if validate_login(actual_pwd, pwd) == True:
-            #DOSOMETHING
+        from login_form.login_form import uname
+        if validate_login(uname, actual_pwd) == True:
+            pwd = hashlib.sha256(pwd.encode()).hexdigest()
+            from sql.db_data_functions import SQL_Connect
+            conn = SQL_Connect(dbLogin, dbPassword, dbHost, dbDatabase, dbPort)
+            update_db_password = conn.cursor()
+            sql_query = "UPDATE konta SET haslo = '" + pwd + "' WHERE login = '" + uname + "'"
+            print(sql_query)
+            update_db_password.execute(sql_query)
+            conn.commit()
             message.set("Gitara!!!")
             newWindow.destroy()
         else:
