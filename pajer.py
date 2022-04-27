@@ -8,8 +8,9 @@ from tktimepicker import AnalogPicker, AnalogThemes, SpinTimePickerModern, SpinT
 from tktimepicker import constants
 import requests
 import os
+from datetime import datetime
 
-version = '0.4.0'
+version = '0.4.1'
 r = requests.get('http://dailystoic.pl/rcp/version.txt', allow_redirects=True)
 update_version = str(r.content)[2:-1]
 print(update_version)
@@ -165,6 +166,11 @@ def Gang_Window():
     Button(newWindow, text="Dodaj wpis", width=15, height=2, bg="orange", command=lambda: Generate_Gang_File(newWindow, Get_Date_From_Callendar(calgang1), Get_Date_From_Callendar(calgang2), pracownicyzid[employee_input5.get()])).place(x=110,y=180)
 
 def Download_Install_Update():
+    import subprocess
+    #main_window.destroy()
+    #uninstall_pajer = '"C:\\Program Files (x86)\\Pajer\\unins000.exe" /VERYSILENT'
+    #unistall = subprocess.call(uninstall_pajer, shell=True)
+    #print(uninstall_pajer)
     from urllib.request import urlretrieve
     import getpass
     dwn_message.set("Pobrano...")
@@ -172,9 +178,9 @@ def Download_Install_Update():
     usrname = getpass.getuser()
     destination = f'C:\\Users\\{usrname}\\Downloads\\PaJer_install.exe'
     download = urlretrieve(url, destination)
-    import subprocess
     returned_value = subprocess.call(destination, shell=True)
     print('returned value:', returned_value)
+    sys.exit()
 
 def Actualization_Window(version, webversion):
     newWindow = Toplevel()
@@ -449,6 +455,9 @@ def Add_Employee_button(window):
         employeesframe.update()
 
 def Add_Entry_button(window, date):
+    now = datetime.now()
+    dt_string = now.strftime("%Y-%m-%d %H:%M:%S")
+    print(dt_string)
     akcja = ent_akcja.get()
     if akcja == 'RODZAJ WPISU' or employee_input5.get() == "PRACOWNIK" or employee_input5.get() == "SERWIS_ALL":
         emp_message.set("Uzupelnij wszystkie pola!")
@@ -467,7 +476,7 @@ def Add_Entry_button(window, date):
             time_str[1] = str(time[1])
         time = " " + time_str[0] + ":" + time_str[1] + ":00"
         acti = Get_SQL_Data_ForUpdate("_action", "action", akcja)
-        sql_query = "INSERT INTO obecnosc (pracownik, time, action, komentarz) VALUES ('" + str(employee_entry) + "', '" + date + time + "', '" + str(acti) + "', '" + koment + "')"
+        sql_query = "INSERT INTO obecnosc (pracownik, time, action, komentarz, edit, edit_time) VALUES ('" + str(employee_entry) + "', '" + date + time + "', '" + str(acti) + "', '" + koment + "', '" + logged_user + "', '" + dt_string + "')"
         Update_SQL_Data_Prepared(sql_query)
         window.destroy()
 

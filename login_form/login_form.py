@@ -53,4 +53,4 @@ def login_form():
 
 
 main_window = Tk()
-main_window.title("PaJer - najlepszy program Rejestracji Czasu Pracy we wszechswiecie")
+main_window.title("PaJer v0.4.1 - najlepszy program Rejestracji Czasu Pracy we wszechswiecie")
