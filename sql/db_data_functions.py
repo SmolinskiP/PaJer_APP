@@ -31,6 +31,8 @@ def Get_SQL_Data(table, data1):
 def Get_SQL_Employees_ID(rights):
     if rights == 5:
         sql_query = "SELECT nazwisko, imie, id FROM pracownicy WHERE dzial = 5 ORDER BY nazwisko"
+    elif rights > 50 and rights < 55:
+        sql_query = "SELECT nazwisko, imie, id FROM pracownicy WHERE teamleader = " + str(rights-50) + " ORDER BY nazwisko"
     else:
         sql_query = "SELECT nazwisko, imie, id FROM pracownicy ORDER BY nazwisko"
     get_sql = conn.cursor()
@@ -65,8 +67,14 @@ def Get_SQL_Data_ForUpdate(table, col_name, data):
     elif table == "umowa":
         table = "_umowa"
         col_name = "rodzaj"
+    elif table == "teamleader":
+        table = "_team"
+    elif table == "palacz":
+        table = "_palacz"
+        col_name = "stan"
 
     sql_query = "SELECT id FROM " + table + " WHERE " + col_name + " = '" + data + "'"
+    print(sql_query)
     get_sql = conn.cursor()
     get_sql.execute(sql_query)
     sql_id = get_sql.fetchall()[0][0]
@@ -94,21 +102,24 @@ def Remove_SQL_Data(table, where1, where2):
     print(sql_query)
     conn.commit()
 
-def get_employees_by_department(department, frame):
+def get_employees_by_department(department, frame, rights):
     from windows.wind_mgmt import destroy_frame_content
     destroy_frame_content(frame)
-
+    sql_query = "SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, _firma.firma, _stanowisko.stanowisko, _dzial.dzial, _lokalizacja.miasto, _umowa.rodzaj, pracownicy.karta, _team.teamleader, _palacz.stan FROM pracownicy LEFT JOIN _dzial ON pracownicy.dzial = _dzial.id LEFT JOIN _firma ON pracownicy.firma = _firma.id LEFT JOIN _umowa ON pracownicy.umowa = _umowa.id LEFT JOIN _stanowisko ON pracownicy.stanowisko = _stanowisko.id LEFT JOIN _lokalizacja ON pracownicy.lokalizacja = _lokalizacja.id LEFT JOIN _team ON pracownicy.teamleader = _team.id LEFT JOIN _palacz ON pracownicy.palacz = _palacz.id WHERE _dzial.dzial = '%s' AND karta IS NOT NULL ORDER BY nazwisko" % department
+    if rights > 50 and rights < 55:
+        sql_query = "SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, _firma.firma, _stanowisko.stanowisko, _dzial.dzial, _lokalizacja.miasto, _umowa.rodzaj, pracownicy.karta, _team.teamleader, _palacz.stan FROM pracownicy LEFT JOIN _dzial ON pracownicy.dzial = _dzial.id LEFT JOIN _firma ON pracownicy.firma = _firma.id LEFT JOIN _umowa ON pracownicy.umowa = _umowa.id LEFT JOIN _stanowisko ON pracownicy.stanowisko = _stanowisko.id LEFT JOIN _lokalizacja ON pracownicy.lokalizacja = _lokalizacja.id LEFT JOIN _team ON pracownicy.teamleader = _team.id LEFT JOIN _palacz ON pracownicy.palacz = _palacz.id WHERE pracownicy.teamleader = '%s' AND karta IS NOT NULL ORDER BY nazwisko" % str(rights-50)
     get_employees = conn.cursor()
-    get_employees.execute("SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, _firma.firma, _stanowisko.stanowisko, _dzial.dzial, _lokalizacja.miasto, _umowa.rodzaj, pracownicy.karta FROM pracownicy LEFT JOIN _dzial ON pracownicy.dzial = _dzial.id LEFT JOIN _firma ON pracownicy.firma = _firma.id LEFT JOIN _umowa ON pracownicy.umowa = _umowa.id LEFT JOIN _stanowisko ON pracownicy.stanowisko = _stanowisko.id LEFT JOIN _lokalizacja ON pracownicy.lokalizacja = _lokalizacja.id WHERE _dzial.dzial = '%s' AND karta IS NOT NULL ORDER BY nazwisko" % department)
+    get_employees.execute(sql_query)
     employees = get_employees.fetchall()
+    print(employees)
     return employees
 
 def get_employees_by_localization(localization, frame):
     from windows.wind_mgmt import destroy_frame_content
     destroy_frame_content(frame)
-
+    sql_query = "SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, _firma.firma, _stanowisko.stanowisko, _dzial.dzial, _lokalizacja.miasto, _umowa.rodzaj, pracownicy.karta, _team.teamleader, _palacz.stan FROM pracownicy LEFT JOIN _dzial ON pracownicy.dzial = _dzial.id LEFT JOIN _firma ON pracownicy.firma = _firma.id LEFT JOIN _umowa ON pracownicy.umowa = _umowa.id LEFT JOIN _stanowisko ON pracownicy.stanowisko = _stanowisko.id LEFT JOIN _lokalizacja ON pracownicy.lokalizacja = _lokalizacja.id LEFT JOIN _team ON pracownicy.teamleader = _team.id LEFT JOIN _palacz ON pracownicy.palacz = _palacz.id WHERE _lokalizacja.miasto = '%s' AND karta IS NOT NULL ORDER BY nazwisko" % localization
     get_employees = conn.cursor()
-    get_employees.execute("SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, _firma.firma, _stanowisko.stanowisko, _dzial.dzial, _lokalizacja.miasto, _umowa.rodzaj, pracownicy.karta FROM pracownicy LEFT JOIN _dzial ON pracownicy.dzial = _dzial.id LEFT JOIN _firma ON pracownicy.firma = _firma.id LEFT JOIN _umowa ON pracownicy.umowa = _umowa.id LEFT JOIN _stanowisko ON pracownicy.stanowisko = _stanowisko.id LEFT JOIN _lokalizacja ON pracownicy.lokalizacja = _lokalizacja.id WHERE _lokalizacja.miasto = '%s' AND karta IS NOT NULL ORDER BY nazwisko" % localization)
+    get_employees.execute(sql_query)
     employees = get_employees.fetchall()
     return employees
 
@@ -128,6 +139,8 @@ def get_occurence_by_entry_time(entry_time, frame):
     sql_query = "SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, obecnosc.time, _action.action, obecnosc.komentarz, obecnosc.id FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik LEFT JOIN _action ON obecnosc.action = _action.id WHERE obecnosc.time LIKE '" + str(entry_time) + "%' ORDER BY nazwisko"
     if rights == 5:
         sql_query = "SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, obecnosc.time, _action.action, obecnosc.komentarz, obecnosc.id FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik LEFT JOIN _action ON obecnosc.action = _action.id WHERE obecnosc.time LIKE '" + str(entry_time) + "%' AND pracownicy.dzial = 5 ORDER BY nazwisko"
+    elif rights > 50 and rights < 55:
+        sql_query = "SELECT pracownicy.id, pracownicy.nazwisko, pracownicy.imie, obecnosc.time, _action.action, obecnosc.komentarz, obecnosc.id FROM obecnosc LEFT JOIN pracownicy ON pracownicy.id = obecnosc.pracownik LEFT JOIN _action ON obecnosc.action = _action.id WHERE obecnosc.time LIKE '" + str(entry_time) + "%' AND pracownicy.teamleader = " + str(rights-50) + " ORDER BY nazwisko"
     print(sql_query)
     get_occurance = conn.cursor()
     get_occurance.execute(sql_query)

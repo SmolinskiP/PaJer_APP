@@ -24,6 +24,24 @@
     <Compile Include="bookmarks\occurence.py">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="excel_functions\cell_types.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="excel_functions\free_days.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="excel_functions\Get_CMD_arguments.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="excel_functions\Get_Path.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="excel_functions\DBconnect.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="rcpexcel.py">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Include="pajer.py" />
     <Compile Include="queries\rights.py">
       <SubType>Code</SubType>
@@ -51,6 +69,7 @@
     <Folder Include="login_form\" />
     <Folder Include="bookmarks\" />
     <Folder Include="ico\" />
+    <Folder Include="excel_functions\" />
     <Folder Include="queries\" />
     <Folder Include="windows\" />
     <Folder Include="sql\" />

@@ -39,7 +39,7 @@ def login_form():
         password = StringVar()
         message = StringVar()
 
-        Label(login_screen,width="300", text="Please enter details below", bg="orange",fg="white").pack()
+        Label(login_screen,width="300", text="Wpisz swoj login i haslo", bg="orange",fg="white").pack()
         Label(login_screen, text="Username * ").place(x=20,y=40)
         Entry(login_screen, textvariable=username).place(x=90,y=42)
         Label(login_screen, text="Password * ").place(x=20,y=80)
@@ -53,4 +53,4 @@ def login_form():
 
 
 main_window = Tk()
-main_window.title("PaJer v0.4.1 - najlepszy program Rejestracji Czasu Pracy we wszechswiecie")
+main_window.title("PaJer v0.6.2 - najlepszy program Rejestracji Czasu Pracy we wszechswiecie")

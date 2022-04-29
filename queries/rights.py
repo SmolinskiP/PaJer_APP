@@ -4,7 +4,7 @@ def Prepare_SQL_akcje(rights):
     if rights == 777:
         table = Get_SQL_Data("_action", "action")
     else:
-        if rights == 5:
+        if rights == 5 or (rights > 50 and rights < 55):
             sql_query = "SELECT action FROM _action WHERE id IN (1, 2, 3, 4)"
         get_sql = conn.cursor()
         get_sql.execute(sql_query)
@@ -20,6 +20,8 @@ def Prepare_SQL_departments(rights):
     else:
         if rights <= 13:
             sql_query = "SELECT dzial FROM _dzial WHERE id = " + str(rights)
+        elif rights > 50 and rights < 55:
+            sql_query = "SELECT dzial FROM _dzial WHERE id = 5"
         get_sql = conn.cursor()
         get_sql.execute(sql_query)
         prepare_table = get_sql.fetchall()
@@ -33,7 +35,9 @@ def Prepare_SQL_stanowiska(rights):
         table = Get_SQL_Data("_stanowisko", "stanowisko")
     else:
         if rights == 5:
-            sql_query = "SELECT stanowisko FROM _stanowisko WHERE id IN (23, 35, 36, 44, 54, 55, 60)"
+            sql_query = "SELECT stanowisko FROM _stanowisko WHERE id IN (35, 36, 44, 54, 55, 60)"
+        elif rights > 50 and rights < 55:
+            sql_query = "SELECT stanowisko FROM _stanowisko WHERE id IN (35, 36, 44, 54, 60)"
         get_sql = conn.cursor()
         get_sql.execute(sql_query)
         prepare_table = get_sql.fetchall()
@@ -47,6 +51,8 @@ def Prepare_SQL_miasta(rights):
         table = Get_SQL_Data("_lokalizacja", "miasto")
     else:
         if rights == 5:
+            sql_query = "SELECT miasto FROM _lokalizacja WHERE id IN (1)"
+        elif rights > 50 and rights < 55:
             sql_query = "SELECT miasto FROM _lokalizacja WHERE id IN (1)"
         get_sql = conn.cursor()
         get_sql.execute(sql_query)

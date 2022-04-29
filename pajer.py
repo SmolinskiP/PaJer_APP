@@ -10,13 +10,257 @@ import requests
 import os
 from datetime import datetime
 
-version = '0.4.1'
-r = requests.get('http://dailystoic.pl/rcp/version.txt', allow_redirects=True)
+
+version = '0.6.2' #Update version in login_form.py also
+r = requests.get('http://dailystoic.pl/rcp/version.txt', allow_redirects=True) #Get version
+changelog = requests.get('http://dailystoic.pl/rcp/version.txt', allow_redirects=True) #Get changelog
 update_version = str(r.content)[2:-1]
 print(update_version)
 
 login_form()
 logged_user = ""
+
+
+
+def Get_SQL_Data_Excel(table, data1, data2, where_data):
+    from excel_functions.DBconnect import Db_Connect
+    if where_data == 0:
+        query = "Error 47: Empty SQL data"
+    else:
+        query = "SELECT " + data1 + " FROM " + table + " WHERE " + str(data2) + " = " + str(where_data)
+        cursor = conn.cursor()
+        cursor.execute(query)
+        query = cursor.fetchall()[0][0]
+    return query
+
+def Get_Total_Time(id, action, date):
+    cursor = conn.cursor()
+    cursor.execute("SELECT DATE_FORMAT(TIME, '%H:%i:%s') FROM obecnosc WHERE pracownik = " + str(id) + " AND action = " + str(action) + " AND time LIKE '" + date + "%'")
+    sql_query_time_1 = cursor.fetchall()
+    sql_query_time_1 = str(sql_query_time_1)[3:-4]
+    h = sql_query_time_1[0:2]
+    if h:
+        h = int(h)
+    m = sql_query_time_1[3:5]
+    if m:
+       m = int(m)
+    s = sql_query_time_1[6:8]
+    if s:
+        s = int(s)
+        ftotal_time = int(h) * 3600 + int(m) * 60 + int(s)
+        del h
+        del m
+        del s
+    try:
+        return ftotal_time
+    except:
+        return None
+
+
+def Generate_Excel(localization, department, month_year):
+    import xlsxwriter
+    import excel_functions.Get_Path as Get_Path
+    dirpath = Get_Path.Get_Local_Path()
+    import getpass
+    usrname = getpass.getuser()
+    destination = f'C:\\Users\\{usrname}\\Documents\\Obecnosc.xlsx'
+    
+    workbook = xlsxwriter.Workbook(destination)
+    red_cell = workbook.add_format({'font_color': 'white', 'bg_color': 'red', 'bold': True})
+    orange_cell = workbook.add_format({'font_color': 'white', 'bg_color': 'orange', 'bold': True})
+    green_cell = workbook.add_format({'font_color': 'white', 'bg_color': 'green', 'bold': True})
+    black_cell = workbook.add_format({'font_color': 'black'})
+    time_cell = workbook.add_format({'num_format': 'hh:mm:ss'})
+    white_cell = workbook.add_format({'font_color': 'white'})
+    from time import strftime
+    from time import gmtime
+    from excel_functions.Get_CMD_arguments import Get_Localization, Get_Department, Get_Month_Year, Main_Db_Query
+
+    int_total_time = 0
+    import sys
+    #SET FREE DAYS - WEEKENDS AND HOLIDAYS
+    import excel_functions.free_days as free_days
+    weekends = free_days.Create_Free_days()
+
+    import excel_functions.DBconnect as DBconnect
+    conn = DBconnect.Db_Connect("rcp", "PDArcpSERWIS", "10.0.10.1", "RFID")
+    cursor = conn.cursor()
+    sql_query_1 = Main_Db_Query(localization, department)
+    cursor.execute(sql_query_1)
+    sql_query_1 = cursor.fetchall()
+
+    #CELL COLORS
+    
+    workbook.add_worksheet("Spis tresci")
+    hyperlink_count = 1
+
+    for (imie, nazwisko, id, palacz, umowa, firma, stanowisko) in sql_query_1:
+        worksheet = workbook.get_worksheet_by_name("Spis tresci")
+        worksheet.write_url('A' + str(hyperlink_count), "internal:'" + nazwisko + " " + imie + "'!A1", string = nazwisko + " " + imie)
+        hyperlink_count += 1
+        workbook.add_worksheet(nazwisko + " " + imie)
+        worksheet = workbook.get_worksheet_by_name(nazwisko + " " + imie)
+        worksheet.set_column('D:F', None, None, {'hidden': True})
+        worksheet.set_column('H:H', None, None, {'hidden': True})
+        worksheet.set_column('N:Y', None, None, {'hidden': True})
+        #worksheet.set_column('M:XFD', None, None, {'hidden': True})
+
+        border_format=workbook.add_format({'border':1})
+        worksheet.conditional_format( 'A4:K36' , { 'type' : 'no_blanks' , 'format' : border_format})
+        worksheet.conditional_format( 'A4:K36' , { 'type' : 'blanks' , 'format' : border_format})
+        worksheet.conditional_format( 'A1:C2' , { 'type' : 'no_blanks' , 'format' : border_format})
+        worksheet.conditional_format( 'G1:G1' , { 'type' : 'no_blanks' , 'format' : border_format})
+
+        worksheet.set_column(1, 2, 11)
+        worksheet.set_column(0, 0, 11)
+        worksheet.set_column(6, 6, 13)
+
+        worksheet.write_url('A1', "internal:'Spis tresci'!A1", string = imie + " " + nazwisko)
+        #worksheet.write(0, 0, imie)
+        #worksheet.write(0, 1, nazwisko)
+        #worksheet.write(0, 5, "Umowa:")
+        #worksheet.write(0, 7, "Firma:")
+        #worksheet.write(2, 0, "Surowe dane ponizej:")
+        worksheet.write(3, 0, "Dzien:")
+        worksheet.write(3, 1, "Wejscie:")
+        worksheet.write(3, 2, "Wyjscie:")
+        worksheet.write(3, 7, "Etat:")
+        worksheet.write(3, 4, "Godzina wejscia:")
+        worksheet.write(3, 5, "Godzina wyjscia:")
+        worksheet.write(3, 6, "Komentarz:")
+        worksheet.write(3, 8, "Liczba przepracowanych godzin brutto:")
+        worksheet.write(3, 9, "Liczba przepracowanych godzin netto:")
+        worksheet.write(3, 10, "Nadgodziny:")
+        worksheet.write_formula('K36', '=SUM(K5:K35)')
+        worksheet.write_formula('I36', '=SUM(I5:I35)')
+        worksheet.write_formula('H36', '=SUM(H5:H35)')
+        if palacz == 1:
+            worksheet.write(0, 6, "Palacz", red_cell)
+        worksheet.write(1, 0, Get_SQL_Data_Excel("_umowa", "rodzaj", "id", umowa))
+        worksheet.write(1, 2, Get_SQL_Data_Excel("_firma", "firma", "id", firma))
+        worksheet.write(0, 2, Get_SQL_Data_Excel("_stanowisko", "stanowisko", "id", stanowisko))
+
+        x = 1
+        while x < 32:
+            cell2_type = black_cell
+            if x < 10:
+                y = "0" + str(x)
+            else:
+                y = str(x)
+            actual_date = month_year + y
+
+            entry_total_time = Get_Total_Time(str(id), 1, actual_date)
+            exit_total_time = Get_Total_Time(str(id), 2, actual_date)
+
+            try:
+                int_total_time = exit_total_time - entry_total_time
+                if int_total_time < 28800:
+                    cell2_type = red_cell
+                total_total_time = strftime("%H:%M:%S", gmtime(int_total_time))
+                del exit_total_time
+                del entry_total_time
+            except:
+                cell2_type = black_cell
+            worksheet = workbook.get_worksheet_by_name(nazwisko + " " + imie)
+            if 'total_total_time' in locals():
+                worksheet.write(x+3, 9, total_total_time, cell2_type)
+                del total_total_time
+        
+            if actual_date in weekends:
+                day_cell = green_cell
+            else:
+                day_cell = black_cell
+            worksheet.write(x+3, 0, actual_date, day_cell)
+            worksheet.write_formula('I'+str(x+4), '=ROUND(J'+str(x+4)+'*24,0)')
+            worksheet.write_formula('K'+str(x+4), '=IF(U' + str(x+4) + '=TRUE,V' + str(x+4) + ',"")'  )
+            worksheet.write_formula('Z'+str(x+4), '=(L' + str(x+4) + "*24)-8", white_cell)
+            worksheet.write_formula('Y'+str(x+4), '=ROUND(Z' + str(x+4) + ',0)', white_cell)
+            worksheet.write_formula('X'+str(x+4), '=MROUND(J' + str(x+4) + '*24,0.0001)', white_cell)
+            worksheet.write_formula('W'+str(x+4), '=MROUND(X' + str(x+4) + '-8,0.0001)', white_cell)
+            worksheet.write_formula('V'+str(x+4), '=FLOOR(W' + str(x+4) + ',0.5)', white_cell)
+            worksheet.write_formula('U'+str(x+4), '=ISNUMBER(V' + str(x+4) + ')', white_cell)
+            if id == 8:
+                worksheet.write_formula('H'+str(x+4), '=IF(I' + str(x+4) + '>=0.01,7,I' + str(x+4) + ')')
+            else:
+                worksheet.write_formula('H'+str(x+4), '=IF(I' + str(x+4) + '>=0.01,8,I' + str(x+4) + ')')
+            x += 1
+        
+        cursor.execute("SELECT pracownik, time, action, komentarz FROM obecnosc WHERE pracownik = " + str(id) + " AND TIME LIKE '" + month_year + "%' ORDER BY pracownik, time, action")
+        sql_query_2 = cursor.fetchall()
+        row = 4
+        for (pracownik, time, action, komentarz) in sql_query_2:
+            worksheet = workbook.get_worksheet_by_name(nazwisko + " " + imie)
+            col = action
+            time_string = str(time)
+            row = int(time_string[8:10])
+            if int((time_string[14:16])) > 0 and action == 1 and int((time_string[14:16])) < 30:
+                cell_type = orange_cell
+                if int_total_time < 28800:
+                    cell_type = red_cell
+            elif int((time_string[14:16])) > 55 and action ==2:
+                cell_type = orange_cell
+                if int_total_time < 28800:
+                    cell_type = red_cell
+            else:
+                cell_type = black_cell
+            if int(time_string[14:16]) >= 45 and action == 1:
+                entry_hour = int(time_string[11:13]) + 1
+                entry_type = black_cell
+            elif int(time_string[14:16]) <= 20 and action == 1:
+                entry_hour = int(time_string[11:13])
+                entry_type = black_cell
+            elif int(time_string[14:16]) > 20 and int(time_string[14:16]) < 45 and action == 1:
+                entry_hour = "Wymaga uwagi"
+                if (pracownik == 7 or pracownik == 128 or pracownik == 21 or pracownik == 112):
+                    entry_hour = time_string[11:16]
+                entry_type = red_cell
+
+            if int(time_string[14:16]) >= 45 and action == 2:
+                exit_hour = int(time_string[11:13]) + 1
+                exit_type = black_cell
+            elif int(time_string[14:16]) <= 15 and action == 2:
+                exit_hour = int(time_string[11:13])
+                exit_type = black_cell
+            elif int(time_string[14:16]) > 15 and int(time_string[14:16]) < 45 and action == 2:
+                exit_hour = "Wymaga uwagi"
+                if (pracownik == 7 or pracownik == 128 or pracownik == 21 or pracownik == 112):
+                    exit_hour = time_string[11:16]
+                exit_type = red_cell
+            if (pracownik == 7 or pracownik == 128 or pracownik == 21 or pracownik == 112):
+                cell_type = black_cell
+                entry_type = black_cell
+                exit_type = black_cell
+            if action == 1 or action == 2:
+                worksheet.write(row + 3, col, time_string[10:], cell_type)
+                if komentarz != None and komentarz != "":
+                    worksheet.write(row + 3, 6, komentarz, green_cell)
+            elif action == 3:
+                worksheet.write(row + 3, col + 10, "Start przerwy: " + time_string[10:], cell_type)
+                if komentarz != None and komentarz != "":
+                    worksheet.write(row + 3, 6, komentarz, green_cell)
+            elif action == 4:
+                worksheet.write(row + 3, col + 10, "Koniec przerwy: " + time_string[10:], cell_type)
+                if komentarz != None and komentarz != "":
+                    worksheet.write(row + 3, 6, komentarz, green_cell)
+            else:
+                holiday_type = Get_SQL_Data_Excel("_action", "action", "id", action)
+                worksheet.write(row + 3, 3, holiday_type, cell_type)
+                if action == 12:
+                    worksheet.write(row + 3, 8, 8)
+                    worksheet.write(row + 3, 9, "08:00:00")
+                if komentarz != None and komentarz != "":
+                    worksheet.write(row + 3, 6, komentarz, green_cell)
+
+            if 'entry_hour' in locals():
+                worksheet.write(row + 3, 4, entry_hour, entry_type)
+                del entry_hour
+            if 'exit_hour' in locals():
+                worksheet.write(row + 3, 5, exit_hour, exit_type)
+                del exit_hour
+
+    workbook.close()
+    conn.close()
+    os.system(destination)
 
 try:
     logged_user = uname
@@ -31,7 +275,7 @@ if logged_user != "":
     get_sql = conn.cursor()
     get_sql.execute(sql_query)
     rights = get_sql.fetchall()[0][0]
-
+    print("Prawa - " + str(rights))
     umowy = Get_SQL_Data("_umowa", "rodzaj")
     firmy = Get_SQL_Data("_firma", "firma")
     palacz = Get_SQL_Data("_palacz", "stan")
@@ -41,7 +285,6 @@ if logged_user != "":
     stanowiska = Prepare_SQL_stanowiska(rights)
     miasta = Prepare_SQL_miasta(rights)
     teamleaders = Get_SQL_Data("_team", "teamleader")
-    teamleaders.append("Nie dotyczy")
     pracownicyzid = Get_SQL_Employees_ID(rights)
     if rights == 777:
         pracownicyzid['PRACOWNIK'] = "*"
@@ -88,6 +331,13 @@ if logged_user != "":
     localization = StringVar(main_window)
     localization.set("Miasto")
     dict_firma = {}
+
+def Hell_No_Window(string):
+    newWindow = Toplevel()
+    newWindow.title("Brak uprawnien")
+    newWindow.geometry("300x130")
+    Label(newWindow, text="Brak uprawnien do:\n" + string, font='Helvetica 14 bold').place(x=50,y=20)
+    Button(newWindow, text="OK :(", width=10, height=1, bg="green", command= lambda:newWindow.destroy()).place(x=105,y=80)
 
 def Get_Date_From_Callendar(callendar_name):
     dt = callendar_name.get_date()
@@ -165,7 +415,141 @@ def Gang_Window():
     Label(newWindow, text="",textvariable=gng_message).place(x=114,y=150)
     Button(newWindow, text="Dodaj wpis", width=15, height=2, bg="orange", command=lambda: Generate_Gang_File(newWindow, Get_Date_From_Callendar(calgang1), Get_Date_From_Callendar(calgang2), pracownicyzid[employee_input5.get()])).place(x=110,y=180)
 
-def Download_Install_Update():
+def Get_Month(string):
+    try:
+        string = int(string)
+    except Exception as e:
+        print(e)
+    if string == 1:
+        month = "Styczen"
+    elif string == 2:
+        month = "Luty"
+    elif string == 3:
+        month = "Marzec"
+    elif string == 4:
+        month = "Kwiecien"
+    elif string == 5:
+        month = "Maj"
+    elif string == 6:
+        month = "Czerwiec"
+    elif string == 7:
+        month = "Lipiec"
+    elif string == 8:
+        month = "Sierpien"
+    elif string == 9:
+        month = "Wrzesien"
+    elif string == 10:
+        month = "Pazdziernik"
+    elif string == 11:
+        month = "Listopad"
+    elif string == 12:
+        month = "Grudzien"
+    elif string == "Styczen":
+        month = "-01-"
+    elif string == "Luty":
+        month = "-02-"
+    elif string == "Marzec":
+        month = "-03-"
+    elif string == "Kwiecien":
+        month = "-04-"
+    elif string == "Maj":
+        month = "-05-"
+    elif string == "Czerwiec":
+        month = "-06-"
+    elif string == "Lipiec":
+        month = "-07-"
+    elif string == "Sierpien":
+        month = "-08-"
+    elif string == "Wrzesien":
+        month = "-09-"
+    elif string == "Pazdziernik":
+        month = "-10-"
+    elif string == "Listopad":
+        month = "-11-"
+    elif string == "Grudzien":
+        month = "-12-"
+    else:
+        mothh = ""
+    return month
+
+def Create_Years_table():
+    today = date.today()
+    actual_year = int(today.strftime("%Y"))
+    year = 2021
+    years = []
+    while actual_year >= year:
+        years.append(actual_year)
+        actual_year = actual_year - 1
+    return years
+
+def Generate_Excel_Check(message, localization, department, month_year, window):
+    print("Lokalizacja " + str(localization))
+    print("Dzial " + str(department))
+    print("Data " + month_year)
+
+    if department == "Po lokalizacji":
+        department = 0
+
+    if localization == "Po dziale":
+        localization = 0
+
+    if localization == "Lokalizacja":
+        message.set("Podaj lokalizacje")
+    elif department == "Dzial":
+        message.set("Podaj dzial")
+    else:
+        if localization != 0:
+            localization = Get_SQL_Data_ForUpdate("_lokalizacja", "miasto", str(localization))
+        if department != 0:
+            department = Get_SQL_Data_ForUpdate("_dzial", "dzial", str(department))
+        print(" Ostatecznie lokalizacja dzial i rok: " + str(localization) + " " + str(department) + " " + month_year)
+        Generate_Excel(localization, department, month_year)
+        window.destroy()
+
+def Excel_Window():
+    today = date.today()
+    d1 = today.strftime("%Y-%m-%d")
+    year = today.strftime("%Y")
+    years = Create_Years_table()
+    month = Get_Month(today.strftime("%m"))
+    months = ["Styczen", "Luty", "Marzec", "Kwiecien", "Maj", "Czerwiec", "Lipiec", "Sierpien", "Wrzesien", "Pazdziernik", "Listopad", "Grudzien"]
+    newWindow = Toplevel()
+    newWindow.title("Generowanie pliku EXCEL")
+    newWindow.geometry("350x300")
+    global exc_message, exc_localization, exc_month, exc_department, exc_year
+    exc_year = StringVar()
+    exc_year.set(year)
+    exc_month = StringVar()
+    exc_month.set(month)
+    exc_localization = StringVar()
+    exc_localization.set("Lokalizacja")
+    exc_message = StringVar()
+    exc_message.set("")
+    exc_department = StringVar()
+    exc_department.set("Dzial")
+
+    exc_departments = departments
+    exc_departments.append("Po lokalizacji")
+    exc_localizations = miasta
+    exc_localizations.append("Po dziale")
+
+    Label(newWindow, text="Miesiac:").place(x=67,y=30)
+    OptionMenu(newWindow, exc_month, *months).place(x=140,y=25)
+
+    Label(newWindow, text="Rok:").place(x=67,y=60)
+    OptionMenu(newWindow, exc_year, *years).place(x=140,y=55)
+
+    Label(newWindow, text="Dzial:").place(x=67,y=90)
+    OptionMenu(newWindow, exc_department, *exc_departments).place(x=140,y=85)
+
+    Label(newWindow, text="Lokalizacja:").place(x=67,y=120)
+    OptionMenu(newWindow, exc_localization, *exc_localizations).place(x=140,y=115)
+
+    Label(newWindow, text=exc_message.get()).place(x=67,y=140)
+    Label(newWindow, text="",textvariable=exc_message).place(x=114,y=160)
+    Button(newWindow, text="Generuj", width=15, height=2, bg="orange", command=lambda: Generate_Excel_Check(exc_message, exc_localization.get(), exc_department.get(), str(exc_year.get()) + Get_Month(exc_month.get()), newWindow)).place(x=110,y=190)
+
+def Download_Install_Update(int):
     import subprocess
     #main_window.destroy()
     #uninstall_pajer = '"C:\\Program Files (x86)\\Pajer\\unins000.exe" /VERYSILENT'
@@ -173,27 +557,31 @@ def Download_Install_Update():
     #print(uninstall_pajer)
     from urllib.request import urlretrieve
     import getpass
-    dwn_message.set("Pobrano...")
-    url = 'http://dailystoic.pl/rcp/PaJer_install.exe'
     usrname = getpass.getuser()
-    destination = f'C:\\Users\\{usrname}\\Downloads\\PaJer_install.exe'
+    if int == 0:
+        url = 'http://dailystoic.pl/rcp/PaJer_install.exe'
+        destination = f'C:\\Users\\{usrname}\\Downloads\\PaJer_install.exe'
+    elif int == 1:
+        url = 'http://dailystoic.pl/rcp/changelog.txt'
+        destination = f'C:\\Users\\{usrname}\\Downloads\\changelog.txt'
     download = urlretrieve(url, destination)
     returned_value = subprocess.call(destination, shell=True)
     print('returned value:', returned_value)
-    sys.exit()
 
 def Actualization_Window(version, webversion):
     newWindow = Toplevel()
     newWindow.title("Aktualizacja")
-    newWindow.geometry("300x100")
+    newWindow.geometry("300x150")
     if version == webversion:
         Label(newWindow, text="Wszystko jest aktualne :)", font='Helvetica 14 bold').place(x=40,y=20)
-        Button(newWindow, text="OK :D", width=10, height=1, bg="green", command= lambda:newWindow.destroy()).place(x=105,y=60 )
+        Button(newWindow, text="Pokaz zmiany", width=10, height=1, command= lambda: [Download_Install_Update(1), newWindow.destroy()]).place(x=105,y=60)
+        Button(newWindow, text="OK :D", width=10, height=1, bg="green", command= lambda:newWindow.destroy()).place(x=105,y=110 )
     else:
         global dwn_message
         dwn_message = StringVar()
         Label(newWindow, text="", textvariable=dwn_message).place(x=800,y=80)
-        Button(newWindow, text="Pobierz aktualizacje", width=15, height=2, bg="orange", command = lambda: Download_Install_Update()).place(x=95,y=30)
+        Button(newWindow, text="Pokaz zmiany", width=10, height=1, command= lambda: [Download_Install_Update(1), newWindow.destroy()]).place(x=108,y=40)
+        Button(newWindow, text="Pobierz aktualizacje", width=15, height=2, bg="orange", command = lambda: Download_Install_Update(0)).place(x=95,y=80)
 
 def Are_You_Sure_Button(value, frame, case):
     are_you_sure = Toplevel()
@@ -216,8 +604,8 @@ def Create_Top_table():
     canvas_toplabel = employeesframe.create_window(650, 20, window=dict_firma[key])
     #dict_firma[key].grid(row=0, column=0)
     x = 0
-    entries = ["LP", "ID", "NAZWISKO", "IMIE", "FIRMA", "STANOWISKO", "DZIAL", "MIASTO", "UMOWA", "ID KARTY"]
-    entries_width = [5, 5, 15, 15, 25, 47, 21, 22, 26, 20]
+    entries = ["LP", "ID", "NAZWISKO", "IMIE", "FIRMA", "STANOWISKO", "DZIAL", "MIASTO", "UMOWA", "ID KARTY", "TEAMLEADER", "PALACZ"]
+    entries_width = [5, 5, 15, 15, 24, 35, 17, 17, 23, 16, 22, 12]
     width_count = 0
     for e in entries:
         e = Entry(dict_firma[key], width=entries_width[width_count], justify='center', fg='black')
@@ -261,7 +649,10 @@ def Create_Table(employees):
                 dict_firma[key] = StringVar(employeesframe)
                 dict_firma[key].set(employee[j])
                 firma = dict_firma[key].get()
-                e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *firmy, command=lambda firma, employee_id = dict_firma["employee_id" + str(i)].get(): Update_SQL_Data("pracownicy", "firma", firma, "id", employee_id)) 
+                if rights == 777:
+                    e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *firmy, command=lambda firma, employee_id = dict_firma["employee_id" + str(i)].get(): Update_SQL_Data("pracownicy", "firma", firma, "id", employee_id)) 
+                else:
+                    e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *firmy, command = lambda firma: Hell_No_Window("zmiana firmy"))
                 e.config(width=18)
                 e.grid(row=0, column=j+1)
             elif j == 4:
@@ -269,28 +660,51 @@ def Create_Table(employees):
                 dict_firma[key] = StringVar(employeesframe)
                 dict_firma[key].set(employee[j])
                 e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *stanowiska, command=lambda stanowisko, employee_id = dict_firma["employee_id" + str(i)].get(): Update_SQL_Data("pracownicy", "stanowisko", stanowisko, "id", employee_id)) 
-                e.config(width=40)
+                e.config(width=28)
                 e.grid(row=0, column=j+1)
             elif j == 5:
                 key = str("dzial" + str(i))
                 dict_firma[key] = StringVar(employeesframe)
                 dict_firma[key].set(employee[j])
-                e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *departments, command=lambda dzial, employee_id = dict_firma["employee_id" + str(i)].get(): Update_SQL_Data("pracownicy", "dzial", dzial, "id", employee_id))
-                e.config(width=15)
+                if rights == 777:
+                    e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *departments, command=lambda dzial, employee_id = dict_firma["employee_id" + str(i)].get(): Update_SQL_Data("pracownicy", "dzial", dzial, "id", employee_id))
+                else:
+                    e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *departments, command=lambda dzial: Hell_No_Window("zmiana dzialu"))
+                e.config(width=10)
                 e.grid(row=0, column=j+1)
             elif j == 6:
                 key = str("miasto" + str(i))
                 dict_firma[key] = StringVar(employeesframe)
                 dict_firma[key].set(employee[j])
-                e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *miasta, command=lambda lokalizacja, employee_id = dict_firma["employee_id" + str(i)].get(): Update_SQL_Data("pracownicy", "lokalizacja", lokalizacja, "id", employee_id))
-                e.config(width=15)
+                if rights == 777:
+                    e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *miasta, command=lambda lokalizacja, employee_id = dict_firma["employee_id" + str(i)].get(): Update_SQL_Data("pracownicy", "lokalizacja", lokalizacja, "id", employee_id))
+                else:
+                    e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *miasta, command=lambda lokalizacja: Hell_No_Window("zmiana miasta"))
+                e.config(width=10)
                 e.grid(row=0, column=j+1)
             elif j == 7:
                 key = str("umowa" + str(i))
                 dict_firma[key] = StringVar(employeesframe)
                 dict_firma[key].set(employee[j])
-                e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *umowy, command=lambda umowa, employee_id = dict_firma["employee_id" + str(i)].get(): Update_SQL_Data("pracownicy", "umowa", umowa, "id", employee_id))
-                e.config(width=20)
+                if rights == 777:
+                    e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *umowy, command=lambda umowa, employee_id = dict_firma["employee_id" + str(i)].get(): Update_SQL_Data("pracownicy", "umowa", umowa, "id", employee_id))
+                else:
+                    e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *umowy, command=lambda umowa: Hell_No_Window("zmiana umowy"))
+                e.config(width=17)
+                e.grid(row=0, column=j+1)
+            elif j == 9:
+                key = str("teamleader" + str(i))
+                dict_firma[key] = StringVar(employeesframe)
+                dict_firma[key].set(employee[j])
+                e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *teamleaders, command=lambda teamleader, employee_id = dict_firma["employee_id" + str(i)].get(): Update_SQL_Data("pracownicy", "teamleader", teamleader, "id", employee_id))
+                e.config(width=16)
+                e.grid(row=0, column=j+1)
+            elif j == 10:
+                key = str("palacz" + str(i))
+                dict_firma[key] = StringVar(employeesframe)
+                dict_firma[key].set(employee[j])
+                e = OptionMenu(dict_firma["frame" + str(i)], dict_firma[key], *palacz, command=lambda palacz, employee_id = dict_firma["employee_id" + str(i)].get(): Update_SQL_Data("pracownicy", "palacz", palacz, "id", employee_id))
+                e.config(width=5)
                 e.grid(row=0, column=j+1)
             else:
                 if j == 0:
@@ -309,7 +723,7 @@ def Create_Table(employees):
                     dict_firma[key] = StringVar(employeesframe)
                     dict_firma[key].set(employee[j])
                 elif j == 8:
-                    entry_width == 30
+                    entry_width == 20
                     key = "card_id" + str(i)
                     dict_firma[key] = StringVar(employeesframe)
                     dict_firma[key].set(employee[j])
@@ -317,7 +731,7 @@ def Create_Table(employees):
                 e = Entry(dict_firma["frame" + str(i)], width=entry_width, fg='blue') 
                 e.grid(row=0, column=j+1)
                 e.insert(END, dict_firma[key].get())
-            if rights == 777:
+            if rights == 888:
                 key = str("dzial" + str(i))
                 dict_firma[key] = StringVar(employeesframe)
                 dict_firma[key].set(employee[j])
@@ -414,7 +828,7 @@ def Create_Table_Occurance(occurance):
     employeesframe.update()
 
 def Print_Employees_By_Department(department):
-    employees = get_employees_by_department(department, employeesframe)
+    employees = get_employees_by_department(department, employeesframe, rights)
     Create_Top_table()
     Create_Table(employees)
 
@@ -486,18 +900,22 @@ def Add_Comment_button(window, date):
     if employee_entry == '*' or koment == '':
         emp_message.set("Uzupelnij wszystkie pola!")
     else:
-        sql_query = "SELECT id from obecnosc WHERE pracownik = " + str(employee_entry) + " AND action = 1 AND time LIKE '" + date + "%'"
+        sql_query = "SELECT id, time from obecnosc WHERE pracownik = " + str(employee_entry) + " AND action = 1 AND time LIKE '" + date + "%'"
         print(sql_query)
         try:
             get_sql = conn.cursor()
             get_sql.execute(sql_query)
             sql_result = get_sql.fetchall()[0][0]
-            update_sql = "UPDATE obecnosc SET komentarz = '" + koment + "' WHERE id = " + str(sql_result)
+            get_sql.execute(sql_query)
+            sql_time = get_sql.fetchall()[0][1]
+            print(sql_time)
+            update_sql = "UPDATE obecnosc SET komentarz = '" + koment + "', time = '" + str(sql_time) + "' WHERE id = " + str(sql_result)
             print(update_sql)
             get_sql.execute(update_sql)
             conn.commit()
             window.destroy()
-        except:
+        except Exception as e:
+            print(e)
             emp_message.set("Prawdopodobnie brak wpisu")
 
 def Add_Comment_Window():
@@ -647,11 +1065,12 @@ def Print_Occurance(input_type, input_value, input_value_2, employee_input):
 def Create_Employee_Tab():
     Destroy_Old()
     employeesframe.update()
+    Print_Employees_By_Department("Serwis")
     select_1 = OptionMenu(topframe, department, *departments, command=lambda department:Print_Employees_By_Department(department))
     select_1.config(height=2, width=10)
     select_1.grid(column=1, row=0, sticky='nw')
 
-    if rights != 5:
+    if rights != 5 and (rights < 50 or rights > 55):
         select_2 = OptionMenu(topframe, localization, *miasta, command=lambda localization:Print_Employees_By_Localization(localization))
         select_2.config(height=2, width=10)
         select_2.grid(column=2, row=0, sticky='nw')
@@ -713,38 +1132,8 @@ def Create_Occurance_Tab():
     gang_btn = Button(main_window, text="Generuj plik\nWapro GANG", width=10, height=2, comman=lambda: Gang_Window())
     gang_btn.grid(column=2, row=1, sticky='n')
 
-
-
-
-    
-
-
-#select_1 = OptionMenu(topframe, department, *departments, command=lambda department:Print_Employees_By_Department(department))
-#select_1.config(height=2, width=10)
-#select_1.grid(column=1, row=0, sticky='nw')
-
-#select_2 = OptionMenu(topframe, localization, *miasta, command=lambda localization:Print_Employees_By_Localization(localization))
-#select_2.config(height=2, width=10)
-#select_2.grid(column=2, row=0, sticky='nw')
-
-#obecnosc_btn = Button(leftsquare, text="LISTA OBECNOSCI", bg='green', width=20, height=2, command=Create_Occurance_Tab)
-#obecnosc_btn.grid(column=3, row=0, sticky='ew')
-
-#btn_1 = Button(leftframe, text="Dodaj\npracownika", width=20, command=lambda: Add_Employee_Window())
-#btn_1.grid(column=0, row=0, sticky='ew')
-
-#btn_2 = Button(leftframe, text="Zmien\nhaslo", width=20, command=lambda: Change_Password())
-#btn_2.grid(column=0, row=1, sticky='ew')
-
-
-
-
-#actu_btn = Button(main_window, text="Sprawdz\naktualizacje", width=10, height=2, command=lambda: Actualization_Window(version, update_version))
-#actu_btn.grid(column=2, row=0, sticky='n')
-
-
-
-
+    exc_btn = Button(main_window, text="Generuj plik\nEXCEL", width=10, height=2, comman=lambda: Excel_Window())
+    exc_btn.grid(column=2, row=2, sticky='n')
 
 try:
     print(uname)
